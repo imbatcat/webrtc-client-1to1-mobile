@@ -1,21 +1,42 @@
 {
   "name": "webrtc-client-1to1-mobile",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@config-plugins/react-native-webrtc": "^12.0.0",
+    "@expo/metro-config": "^0.20.17",
+    "@microsoft/signalr": "^9.0.6",
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "axios": "^1.11.0",
+    "event-target-shim": "^6.0.2",
     "expo": "~53.0.20",
+    "expo-dev-client": "~5.2.4",
+    "expo-router": "~5.1.4",
     "expo-status-bar": "~2.2.3",
+    "metro-config": "^0.83.1",
     "react": "19.0.0",
-    "react-native": "0.79.5"
+    "react-native": "0.79.5",
+    "react-native-reanimated": "~3.17.4",
+    "react-native-safe-area-context": "^5.4.0",
+    "react-native-screens": "~4.11.1",
+    "react-native-webrtc": "124.0.5",
+    "react-native-worklets": "^0.4.1",
+    "resolve-from": "^5.0.0",
+    "react-native-gesture-handler": "~2.24.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~53.0.9"
   },
   "private": true
 }
