@@ -1,11 +1,12 @@
 import { View, Text } from "react-native";
 import { RTCView } from "react-native-webrtc";
 import { useState, useEffect } from "react";
-import { useSignalR } from "../../context/signalrContext";
-import { useWebRTC } from "../../context/webrtcContext";
-import DraggableContainer from "../../components/DraggableContainer";
-import MeetingMenuBar from "../../components/MeetingMenuBar";
+import { useSignalR } from "../context/signalrContext";
+import { useWebRTC } from "../context/webrtcContext";
+import DraggableContainer from "../components/DraggableContainer";
+import MeetingMenuBar from "../components/MeetingMenuBar";
 import { router, useLocalSearchParams } from "expo-router";
+import { ConnectionStates } from "../services/signalr/ConnectionStates";
 
 export default function Meeting() {
   const { username } = useLocalSearchParams();
@@ -30,6 +31,7 @@ export default function Meeting() {
     webrtcService.toggleVideo();
     setIsVideoMuted(!isVideoMuted);
   };
+  console.log("meeting");
   const onToggleEndCall = () => {
     webrtcService.closeConnection();
     router.navigate("/");
@@ -48,6 +50,7 @@ export default function Meeting() {
 
     const initializeMedia = async () => {
       try {
+        console.log("initializeMedia");
         setIsLoading(true);
         setError(null);
 
@@ -78,7 +81,11 @@ export default function Meeting() {
       }
     };
 
-    signalrService.onEvent("onConnected", initializeMedia);
+    if (signalrService.connectionStatus.state === ConnectionStates.CONNECTED) {
+      initializeMedia();
+    } else {
+      signalrService.onEvent("onConnected", initializeMedia);
+    }
 
     return () => {
       signalrService.offEvent("onConnected", initializeMedia);

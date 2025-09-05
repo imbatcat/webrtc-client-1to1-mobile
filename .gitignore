@@ -35,6 +35,6 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+.env
 ACTION_PLAN.md
 PROJECT_STRUCTURE.md
-.env

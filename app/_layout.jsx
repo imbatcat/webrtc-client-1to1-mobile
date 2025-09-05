@@ -1,17 +1,26 @@
-import React from "react";
-import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import React, { useEffect } from "react";
+import { Slot, Stack } from "expo-router";
+import { WebRTCProvider } from "../context/webrtcContext";
 import { registerGlobals } from "react-native-webrtc";
+import { SignalRProvider } from "../context/signalrContext";
+// import * as NavigationBar from "expo-navigation-bar";
 
 export default function RootLayout() {
+  // useEffect(() => {
+  //   NavigationBar.setVisibilityAsync("hidden");
+  //   return () => {
+  //     NavigationBar.setVisibilityAsync("visible");
+  //   };
+  // }, []);
   registerGlobals();
   return (
-    <Stack>
-      <Stack.Screen
-        name="index"
-        options={{ headerShown: false }}
-        initialRouteName="index"
-      />
-      <Stack.Screen name="(meeting)" options={{ title: "Meeting" }} />
-    </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SignalRProvider>
+        <WebRTCProvider>
+          <Slot />
+        </WebRTCProvider>
+      </SignalRProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useSignalR } from "./signalrContext";
 import WebRTCService from "../services/webrtc/service";
-import { useLocalSearchParams } from "expo-router";
+import { ConnectionStates } from "../services/signalr/ConnectionStates";
 
 // Create the context
 const WebRTCContext = createContext();
@@ -22,9 +22,8 @@ export const useWebRTC = () => {
 };
 
 export const WebRTCProvider = ({ children }) => {
-  const { username } = useLocalSearchParams();
   const { service: signalrService } = useSignalR();
-  const service = useMemo(() => new WebRTCService(username), [username]);
+  const service = useMemo(() => new WebRTCService(), []);
 
   // Create bound methods that maintain proper 'this' context for private fields
   const boundRegisterHandlers = useMemo(
@@ -37,13 +36,17 @@ export const WebRTCProvider = ({ children }) => {
   );
 
   useEffect(() => {
-    signalrService.onEvent("onConnected", boundRegisterHandlers);
+    if (signalrService.connectionStatus.state === ConnectionStates.CONNECTED) {
+      boundRegisterHandlers();
+    } else {
+      signalrService.onEvent("onConnected", boundRegisterHandlers);
+    }
     signalrService.onEvent("onDisconnected", boundUnregisterHandlers);
 
     return () => {
       signalrService.offEvent("onConnected", boundRegisterHandlers);
       try {
-        service.unregisterSignalrHandlers();
+        service.unregisterSignalrHandlers(); // unregister incase onDisconnected is not called
       } catch (error) {
         console.error("Error unregistering signalr handlers:", error);
       }

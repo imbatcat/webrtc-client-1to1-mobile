@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { createContext, useContext, useEffect, useMemo } from "react";
 import signalrService from "../services/signalr/service";
 
 // Create the context

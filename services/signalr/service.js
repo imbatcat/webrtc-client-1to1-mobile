@@ -210,6 +210,7 @@ class SignalRService {
     if (this.#connectionCallbacks.has(eventName)) {
       this.#connectionCallbacks.get(eventName).forEach((callback) => {
         try {
+          if (!callback) return;
           callback(data);
         } catch (error) {
           console.error(`SignalR: Error in ${eventName} callback:`, error);

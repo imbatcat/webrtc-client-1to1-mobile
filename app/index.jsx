@@ -14,11 +14,6 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-function isUsernameValid(value) {
-  // Basic non-empty validation; server remains the source of truth
-  return String(value).trim().length > 0;
-}
-
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +21,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const isFormValid = isUsernameValid(username) && password.length > 0;
+  const isFormValid = username.trim().length > 0 && password.length > 0;
 
   async function handleSubmit() {
     if (!isFormValid || loading) return;
@@ -46,7 +41,7 @@ export default function Login() {
         await AsyncStorage.setItem("accessToken", token);
         router.push({
           pathname: "/meeting",
-          params: { username }
+          params: { username },
         });
       } else {
         Alert.alert("Error", "Login failed. Please try again.");
@@ -71,9 +66,7 @@ export default function Login() {
         <TextInput
           style={[
             styles.input,
-            username.length > 0 && !isUsernameValid(username)
-              ? styles.inputError
-              : null,
+            username.length > 0 && !isFormValid ? styles.inputError : null,
           ]}
           placeholder="Username"
           value={username}

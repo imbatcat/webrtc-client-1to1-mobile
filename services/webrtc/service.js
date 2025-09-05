@@ -4,6 +4,7 @@ import registerHandlers from "../signalr/registerHandlers";
 import unregisterHandlers from "../signalr/unregisterHandlers";
 import { HUB_METHODS, CLIENT_METHODS } from "../signalr/signalingMethods";
 
+// TODO: enforce polite/impolite behavior
 class WebRTCService {
   #peerConnection = null;
   #localStream = null;
@@ -16,14 +17,13 @@ class WebRTCService {
   #iceCandidateQueue = [];
   #localStreamCallback = null;
   #onTrackCallback = null;
+  #statsInterval = null;
+  #statsCallback = null;
+  #isStatsCollectionActive = false;
 
   #handleMessageReceived = this.handleMessageReceived.bind(this);
   #handleCandidateReceived = this.handleCandidateReceived.bind(this);
   #handleUserLeft = this.handleUserLeft.bind(this);
-
-  constructor(username) {
-    this.#username = username;
-  }
 
   handleOnTrack({ track, streams }) {
     console.log(
@@ -85,10 +85,13 @@ class WebRTCService {
     };
   }
 
-  async initializeConnection(roomId) {
+  async initializeConnection(roomId, username) {
     try {
       if (roomId) {
         this.#roomId = roomId;
+      }
+      if (username) {
+        this.#username = username;
       }
       this.#peerConnection = new RTCPeerConnection(this.getPCConfig());
       this.setupWebRtcHandlers();
@@ -158,6 +161,14 @@ class WebRTCService {
 
   async closeConnection() {
     console.log(`WebRTC [${this.#username}]: Closing connection`);
+
+    // Stop stats collection before closing connection
+    this.stopStatsCollection();
+
+    this.localStream.getTracks().forEach((track) => {
+      track.stop();
+    });
+
     this.localStream = null;
     if (this.#localStreamCallback) {
       this.#localStreamCallback(null);
@@ -193,7 +204,9 @@ class WebRTCService {
   async handleUserLeft(username) {
     console.log(`WebRTC [${this.#username}]: User left:`, username);
 
-    this.#isPolite = true;
+    this.stopStatsCollection();
+
+    this.#isPolite = true; // TODO: enforce polite/impolite behavior
 
     if (this.#onTrackCallback) {
       this.#onTrackCallback(null);
@@ -282,9 +295,6 @@ class WebRTCService {
       }
     } catch (error) {
       this.#isSettingRemoteAnswerPending = false;
-      // if (this.#peerConnection.signalingState !== "stable") {
-      //   this.initializeConnection();
-      // }
       console.warn(
         `WebRTC [${this.#username}]: Error handling message received`
       );
@@ -432,6 +442,354 @@ class WebRTCService {
     this.#localStream = stream;
     if (this.#localStreamCallback) {
       this.#localStreamCallback(stream);
+    }
+  }
+
+  async getStats() {
+    if (!this.#peerConnection) {
+      console.warn(
+        `WebRTC [${this.#username}]: Cannot get stats - no peer connection`
+      );
+      return null;
+    }
+
+    try {
+      const stats = await this.#peerConnection.getStats();
+      const parsedStats = {
+        timestamp: Date.now(),
+        connectionState: this.#peerConnection.connectionState,
+        iceConnectionState: this.#peerConnection.iceConnectionState,
+        iceGatheringState: this.#peerConnection.iceGatheringState,
+        signalingState: this.#peerConnection.signalingState,
+        stats: {},
+      };
+
+      stats.forEach((report) => {
+        if (!parsedStats.stats[report.type]) {
+          parsedStats.stats[report.type] = [];
+        }
+
+        const reportData = {
+          id: report.id,
+          timestamp: report.timestamp,
+          ...Object.fromEntries(
+            Object.keys(report)
+              .filter((key) => !["id", "timestamp", "type"].includes(key))
+              .map((key) => [key, report[key]])
+          ),
+        };
+
+        parsedStats.stats[report.type].push(reportData);
+      });
+
+      console.log(
+        `WebRTC [${this.#username}]: Stats collected - ${
+          Object.keys(parsedStats.stats).length
+        } report types`
+      );
+      return parsedStats;
+    } catch (error) {
+      console.error(`WebRTC [${this.#username}]: Error getting stats:`, error);
+      return null;
+    }
+  }
+
+  startStatsCollection(callback, intervalMs) {
+    if (this.#isStatsCollectionActive) {
+      console.warn(
+        `WebRTC [${this.#username}]: Stats collection already active`
+      );
+      return;
+    }
+
+    if (!this.#peerConnection) {
+      console.warn(
+        `WebRTC [${
+          this.#username
+        }]: Cannot start stats collection - no peer connection`
+      );
+      return;
+    }
+
+    const interval = intervalMs || 5000;
+    this.#statsCallback = callback;
+    this.#isStatsCollectionActive = true;
+
+    console.log(
+      `WebRTC [${
+        this.#username
+      }]: Starting stats collection every ${interval}ms`
+    );
+
+    this.#statsInterval = setInterval(async () => {
+      if (!this.#isStatsCollectionActive || !this.#peerConnection) {
+        return;
+      }
+
+      const stats = await this.getStats();
+      if (stats && this.#statsCallback) {
+        try {
+          this.#statsCallback(stats);
+        } catch (error) {
+          console.error(
+            `WebRTC [${this.#username}]: Error in stats callback:`,
+            error
+          );
+        }
+      }
+    }, interval);
+  }
+
+  /**
+   * Stop periodic stats collection
+   */
+  stopStatsCollection() {
+    if (!this.#isStatsCollectionActive) {
+      return;
+    }
+
+    console.log(`WebRTC [${this.#username}]: Stopping stats collection`);
+
+    if (this.#statsInterval) {
+      clearInterval(this.#statsInterval);
+      this.#statsInterval = null;
+    }
+
+    this.#isStatsCollectionActive = false;
+    this.#statsCallback = null;
+  }
+
+  /**
+   * Set stats callback for periodic updates
+   * @param {Function} callback - Callback function to receive stats data
+   */
+  setStatsCallback(callback) {
+    this.#statsCallback = callback;
+  }
+
+  /**
+   * Parse key call quality metrics from WebRTC stats
+   * @param {Object} stats - Raw stats object from getStats()
+   * @returns {Object} Parsed call quality metrics
+   */
+  parseCallQualityStats(stats) {
+    if (!stats || !stats.stats) {
+      return null;
+    }
+
+    const quality = {
+      timestamp: stats.timestamp,
+      connectionState: stats.connectionState,
+      iceConnectionState: stats.iceConnectionState,
+
+      // Video metrics
+      video: {
+        fps: { incoming: 0, outgoing: 0 },
+        resolution: {
+          incoming: { width: 0, height: 0 },
+          outgoing: { width: 0, height: 0 },
+        },
+        bitrate: { incoming: 0, outgoing: 0 },
+        packetsLost: { incoming: 0, outgoing: 0 },
+        packetsReceived: { incoming: 0, outgoing: 0 },
+        packetsSent: { incoming: 0, outgoing: 0 },
+        jitter: { incoming: 0, outgoing: 0 },
+        roundTripTime: 0,
+      },
+
+      // Audio metrics
+      audio: {
+        bitrate: { incoming: 0, outgoing: 0 },
+        packetsLost: { incoming: 0, outgoing: 0 },
+        packetsReceived: { incoming: 0, outgoing: 0 },
+        packetsSent: { incoming: 0, outgoing: 0 },
+        jitter: { incoming: 0, outgoing: 0 },
+        audioLevel: { incoming: 0, outgoing: 0 },
+      },
+
+      // Network metrics
+      network: {
+        roundTripTime: 0,
+        availableOutgoingBitrate: 0,
+        availableIncomingBitrate: 0,
+        totalBytesReceived: 0,
+        totalBytesSent: 0,
+      },
+    };
+
+    // Parse inbound RTP stats (incoming media)
+    if (stats.stats["inbound-rtp"]) {
+      stats.stats["inbound-rtp"].forEach((report) => {
+        if (report.mediaType === "video") {
+          quality.video.fps.incoming = report.framesPerSecond || 0;
+          quality.video.resolution.incoming = {
+            width: report.frameWidth || 0,
+            height: report.frameHeight || 0,
+          };
+          quality.video.bitrate.incoming =
+            (report.bytesReceived * 8) / 1000 || 0; // kbps
+          quality.video.packetsLost.incoming = report.packetsLost || 0;
+          quality.video.packetsReceived.incoming = report.packetsReceived || 0;
+          quality.video.jitter.incoming = report.jitter || 0;
+        } else if (report.mediaType === "audio") {
+          quality.audio.bitrate.incoming =
+            (report.bytesReceived * 8) / 1000 || 0; // kbps
+          quality.audio.packetsLost.incoming = report.packetsLost || 0;
+          quality.audio.packetsReceived.incoming = report.packetsReceived || 0;
+          quality.audio.jitter.incoming = report.jitter || 0;
+          quality.audio.audioLevel.incoming = report.audioLevel || 0;
+        }
+      });
+    }
+
+    // Parse outbound RTP stats (outgoing media)
+    if (stats.stats["outbound-rtp"]) {
+      stats.stats["outbound-rtp"].forEach((report) => {
+        if (report.mediaType === "video") {
+          quality.video.fps.outgoing = report.framesPerSecond || 0;
+          quality.video.resolution.outgoing = {
+            width: report.frameWidth || 0,
+            height: report.frameHeight || 0,
+          };
+          quality.video.bitrate.outgoing = (report.bytesSent * 8) / 1000 || 0; // kbps
+          quality.video.packetsLost.outgoing = report.packetsLost || 0;
+          quality.video.packetsSent.outgoing = report.packetsSent || 0;
+        } else if (report.mediaType === "audio") {
+          quality.audio.bitrate.outgoing = (report.bytesSent * 8) / 1000 || 0; // kbps
+          quality.audio.packetsLost.outgoing = report.packetsLost || 0;
+          quality.audio.packetsSent.outgoing = report.packetsSent || 0;
+          quality.audio.audioLevel.outgoing = report.audioLevel || 0;
+        }
+      });
+    }
+
+    // Parse candidate pair stats (network quality)
+    if (stats.stats["candidate-pair"]) {
+      stats.stats["candidate-pair"].forEach((report) => {
+        if (report.state === "succeeded") {
+          quality.network.roundTripTime =
+            report.currentRoundTripTime * 1000 || 0; // ms
+          quality.network.availableOutgoingBitrate =
+            report.availableOutgoingBitrate || 0;
+          quality.network.availableIncomingBitrate =
+            report.availableIncomingBitrate || 0;
+          quality.network.totalBytesReceived = report.bytesReceived || 0;
+          quality.network.totalBytesSent = report.bytesSent || 0;
+        }
+      });
+    }
+
+    // Calculate packet loss percentages
+    if (quality.video.packetsReceived.incoming > 0) {
+      quality.video.packetLossPercentage = {
+        incoming:
+          (quality.video.packetsLost.incoming /
+            (quality.video.packetsReceived.incoming +
+              quality.video.packetsLost.incoming)) *
+          100,
+        outgoing:
+          quality.video.packetsLost.outgoing > 0
+            ? (quality.video.packetsLost.outgoing /
+                (quality.video.packetsSent.outgoing +
+                  quality.video.packetsLost.outgoing)) *
+              100
+            : 0,
+      };
+    }
+
+    if (quality.audio.packetsReceived.incoming > 0) {
+      quality.audio.packetLossPercentage = {
+        incoming:
+          (quality.audio.packetsLost.incoming /
+            (quality.audio.packetsReceived.incoming +
+              quality.audio.packetsLost.incoming)) *
+          100,
+        outgoing:
+          quality.audio.packetsLost.outgoing > 0
+            ? (quality.audio.packetsLost.outgoing /
+                (quality.audio.packetsSent.outgoing +
+                  quality.audio.packetsLost.outgoing)) *
+              100
+            : 0,
+      };
+    }
+
+    return quality;
+  }
+
+  logCallQualityStats(stats) {
+    const quality = this.parseCallQualityStats(stats);
+    if (quality) {
+      console.log("=== CALL QUALITY METRICS ===");
+      console.log(
+        `Connection: ${quality.connectionState} | ICE: ${quality.iceConnectionState}`
+      );
+      console.log(`Ping: ${quality.network.roundTripTime.toFixed(1)}ms`);
+      console.log(
+        `Video FPS: In=${quality.video.fps.incoming} Out=${quality.video.fps.outgoing}`
+      );
+      console.log(
+        `Video Resolution: In=${quality.video.resolution.incoming.width}x${quality.video.resolution.incoming.height} Out=${quality.video.resolution.outgoing.width}x${quality.video.resolution.outgoing.height}`
+      );
+      console.log(
+        `Video Bitrate: In=${quality.video.bitrate.incoming.toFixed(
+          1
+        )}kbps Out=${quality.video.bitrate.outgoing.toFixed(1)}kbps`
+      );
+      console.log(
+        `Video Packet Loss: In=${
+          quality.video.packetLossPercentage?.incoming?.toFixed(2) || 0
+        }% Out=${
+          quality.video.packetLossPercentage?.outgoing?.toFixed(2) || 0
+        }%`
+      );
+      console.log(
+        `Audio Bitrate: In=${quality.audio.bitrate.incoming.toFixed(
+          1
+        )}kbps Out=${quality.audio.bitrate.outgoing.toFixed(1)}kbps`
+      );
+      console.log(
+        `Audio Packet Loss: In=${
+          quality.audio.packetLossPercentage?.incoming?.toFixed(2) || 0
+        }% Out=${
+          quality.audio.packetLossPercentage?.outgoing?.toFixed(2) || 0
+        }%`
+      );
+      console.log(
+        `Audio Level: In=${quality.audio.audioLevel.incoming.toFixed(
+          2
+        )} Out=${quality.audio.audioLevel.outgoing.toFixed(2)}`
+      );
+      console.log(
+        `Jitter: Video=${quality.video.jitter.incoming.toFixed(
+          3
+        )}ms Audio=${quality.audio.jitter.incoming.toFixed(3)}ms`
+      );
+      console.log("==========================");
+    }
+  }
+
+  toggleAudio() {
+    if (this.#localStream) {
+      this.#localStream.getAudioTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+      });
+    }
+  }
+
+  toggleVideo() {
+    if (this.#localStream) {
+      this.#localStream.getVideoTracks().forEach((track) => {
+        track.enabled = !track.enabled;
+      });
+    }
+  }
+
+  toggleFlipCamera() {
+    if (this.#localStream) {
+      this.#localStream.getVideoTracks().forEach((track) => {
+        track._switchCamera();
+      });
     }
   }
 }
