@@ -17,11 +17,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [roomId, setRoomId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const isFormValid = username.trim().length > 0 && password.length > 0;
+  const isFormValid =
+    username.trim().length > 0 &&
+    password.length > 0 &&
+    roomId.trim().length > 0;
 
   async function handleSubmit() {
     if (!isFormValid || loading) return;
@@ -33,15 +37,17 @@ export default function Login() {
       const response = await axios.post(url, {
         username,
         password,
+        roomId,
       });
 
       if (response.status === 200) {
         const token = response.data.accessToken;
         console.log(token);
         await AsyncStorage.setItem("accessToken", token);
+        await AsyncStorage.setItem("username", username);
+        await AsyncStorage.setItem("roomId", roomId);
         router.push({
-          pathname: "/meeting",
-          params: { username },
+          pathname: "/navigation",
         });
       } else {
         Alert.alert("Error", "Login failed. Please try again.");
@@ -63,36 +69,60 @@ export default function Login() {
       <View style={styles.formWrapper}>
         <Text style={styles.title}>Login</Text>
 
-        <TextInput
-          style={[
-            styles.input,
-            username.length > 0 && !isFormValid ? styles.inputError : null,
-          ]}
-          placeholder="Username"
-          value={username}
-          onChangeText={setUsername}
-          keyboardType="default"
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="username"
-          textContentType="username"
-          accessibilityLabel="Username"
-          returnKeyType="next"
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Username</Text>
+          <TextInput
+            style={[
+              styles.input,
+              username.length > 0 && !isFormValid ? styles.inputError : null,
+            ]}
+            placeholder="Enter your username"
+            value={username}
+            onChangeText={setUsername}
+            keyboardType="default"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="username"
+            textContentType="username"
+            accessibilityLabel="Username"
+            returnKeyType="next"
+          />
+        </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="password"
-          textContentType="password"
-          accessibilityLabel="Password"
-          returnKeyType="done"
-        />
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="password"
+            textContentType="password"
+            accessibilityLabel="Password"
+            returnKeyType="next"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Room ID</Text>
+          <TextInput
+            style={[
+              styles.input,
+              roomId.length > 0 && !isFormValid ? styles.inputError : null,
+            ]}
+            placeholder="Enter meeting room ID"
+            value={roomId}
+            onChangeText={setRoomId}
+            keyboardType="default"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            accessibilityLabel="Room ID"
+            returnKeyType="done"
+          />
+        </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -134,14 +164,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: "center",
   },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+    marginBottom: 6,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    marginBottom: 12,
     fontSize: 16,
+    backgroundColor: "#fff",
   },
   inputError: {
     borderColor: "#c62828",

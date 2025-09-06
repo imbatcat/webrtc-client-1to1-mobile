@@ -24,9 +24,10 @@
     "expo-dev-client": "~5.2.4",
     "expo-linking": "~7.1.7",
     "expo-navigation-bar": "~4.2.8",
-    "expo-pip": "^2.0.0",
+    "expo-notifications": "~0.31.4",
     "expo-router": "~5.1.5",
     "expo-status-bar": "~2.2.3",
+    "expo-task-manager": "~13.1.6",
     "metro-config": "^0.83.1",
     "react": "19.0.0",
     "react-native": "0.79.5",
@@ -35,7 +36,8 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-webrtc": "124.0.5",
-    "resolve-from": "^5.0.0"
+    "resolve-from": "^5.0.0",
+    "expo-background-task": "~0.2.8"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

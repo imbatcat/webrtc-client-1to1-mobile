@@ -1,30 +1,34 @@
-import { View, Pressable } from "react-native";
+import { View, Pressable, StyleSheet } from "react-native";
 import { Feather, Foundation, MaterialIcons } from "@expo/vector-icons";
 export default function MeetingMenuBar({
   isAudioMuted,
   isVideoMuted,
+  isMinimized,
   onToggleAudio,
   onToggleVideo,
   onToggleEndCall,
   onToggleFlipCamera,
+  onToggleMinimize,
 }) {
+  const onScreen = StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 10,
+      paddingLeft: 50,
+      paddingRight: 50,
+      backgroundColor: "#000000",
+      borderRadius: 10,
+      margin: 10,
+      marginBottom: 50,
+      width: "90%",
+      alignSelf: "center",
+    },
+  });
+
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: 10,
-        paddingLeft: 50,
-        paddingRight: 50,
-        backgroundColor: "#000000",
-        borderRadius: 10,
-        margin: 10,
-        marginBottom: 50,
-        width: "90%",
-        alignSelf: "center",
-      }}
-    >
+    <View style={onScreen.container}>
       <Pressable onPress={onToggleAudio}>
         <Feather
           name={isAudioMuted ? "mic-off" : "mic"}
@@ -44,6 +48,13 @@ export default function MeetingMenuBar({
       </Pressable>
       <Pressable onPress={onToggleFlipCamera}>
         <Foundation name="loop" size={24} color="blue" />
+      </Pressable>
+      <Pressable onPress={onToggleMinimize}>
+        <Feather
+          name={isMinimized ? "maximize-2" : "minimize-2"}
+          size={24}
+          color="white"
+        />
       </Pressable>
     </View>
   );

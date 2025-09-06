@@ -4,6 +4,31 @@ import registerHandlers from "../signalr/registerHandlers";
 import unregisterHandlers from "../signalr/unregisterHandlers";
 import { HUB_METHODS, CLIENT_METHODS } from "../signalr/signalingMethods";
 
+const iceServers = [
+  {
+    urls: "stun:stun.relay.metered.ca:80",
+  },
+  {
+    urls: "turn:standard.relay.metered.ca:80",
+    username: process.env.EXPO_PUBLIC_TURN_USERNAME,
+    credential: process.env.EXPO_PUBLIC_TURN_CREDENTIAL,
+  },
+  {
+    urls: "turn:standard.relay.metered.ca:80?transport=tcp",
+    username: process.env.EXPO_PUBLIC_TURN_USERNAME,
+    credential: process.env.EXPO_PUBLIC_TURN_CREDENTIAL,
+  },
+  {
+    urls: "turn:standard.relay.metered.ca:443",
+    username: process.env.EXPO_PUBLIC_TURN_USERNAME,
+    credential: process.env.EXPO_PUBLIC_TURN_CREDENTIAL,
+  },
+  {
+    urls: "turns:standard.relay.metered.ca:443?transport=tcp",
+    username: process.env.EXPO_PUBLIC_TURN_USERNAME,
+    credential: process.env.EXPO_PUBLIC_TURN_CREDENTIAL,
+  },
+];
 // TODO: enforce polite/impolite behavior
 class WebRTCService {
   #peerConnection = null;
@@ -77,11 +102,7 @@ class WebRTCService {
 
   getPCConfig() {
     return {
-      iceServers: [
-        {
-          urls: "stun:stun.l.google.com:19302",
-        },
-      ],
+      iceServers: iceServers,
     };
   }
 
@@ -162,12 +183,7 @@ class WebRTCService {
   async closeConnection() {
     console.log(`WebRTC [${this.#username}]: Closing connection`);
 
-    // Stop stats collection before closing connection
     this.stopStatsCollection();
-
-    this.localStream.getTracks().forEach((track) => {
-      track.stop();
-    });
 
     this.localStream = null;
     if (this.#localStreamCallback) {
@@ -482,11 +498,6 @@ class WebRTCService {
         parsedStats.stats[report.type].push(reportData);
       });
 
-      console.log(
-        `WebRTC [${this.#username}]: Stats collected - ${
-          Object.keys(parsedStats.stats).length
-        } report types`
-      );
       return parsedStats;
     } catch (error) {
       console.error(`WebRTC [${this.#username}]: Error getting stats:`, error);

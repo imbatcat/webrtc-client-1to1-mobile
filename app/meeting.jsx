@@ -1,115 +1,64 @@
 import { View, Text } from "react-native";
 import { RTCView } from "react-native-webrtc";
-import { useState, useEffect } from "react";
-import { useSignalR } from "../context/signalrContext";
-import { useWebRTC } from "../context/webrtcContext";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useMeetingState } from "../context/meetingStateContext";
 import DraggableContainer from "../components/DraggableContainer";
 import MeetingMenuBar from "../components/MeetingMenuBar";
-import { router, useLocalSearchParams } from "expo-router";
-import { ConnectionStates } from "../services/signalr/ConnectionStates";
 
 export default function Meeting() {
-  const { username } = useLocalSearchParams();
-  const { service: signalrService } = useSignalR();
-  const { service: webrtcService } = useWebRTC();
-  const [localMediaStream, setLocalMediaStream] = useState(null);
-  const [remoteMediaStream, setRemoteMediaStream] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isAudioMuted, setIsAudioMuted] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
-  const [draggableContainerPosition, setDraggableContainerPosition] = useState({
-    x: 5,
-    y: 5,
-  });
+  const [username, setUsername] = useState("");
+  const [roomId, setRoomId] = useState("");
 
-  const onToggleAudio = () => {
-    webrtcService.toggleAudio();
-    setIsAudioMuted(!isAudioMuted);
+  // Get everything from global context
+  const {
+    // State
+    localMediaStream,
+    remoteMediaStream,
+    isLoading,
+    error,
+    isAudioMuted,
+    isVideoMuted,
+    isMinimized,
+
+    // Methods
+    setCallInfo,
+    startCall,
+    endCall,
+    onToggleAudio,
+    onToggleVideo,
+    onToggleFlipCamera,
+    onToggleMinimize,
+  } = useMeetingState();
+
+  // Handle end call with navigation
+  const handleEndCall = () => {
+    endCall();
   };
-  const onToggleVideo = () => {
-    webrtcService.toggleVideo();
-    setIsVideoMuted(!isVideoMuted);
-  };
-  console.log("meeting");
-  const onToggleEndCall = () => {
-    webrtcService.closeConnection();
-    router.navigate("/");
-    setIsLoading(false);
-    setError(null);
-    setLocalMediaStream(null);
-    setRemoteMediaStream(null);
-    setIsAudioMuted(false);
-    setIsVideoMuted(false);
-  };
-  const onToggleFlipCamera = () => {
-    webrtcService.toggleFlipCamera();
-  };
+  // Load user data from AsyncStorage and initialize call
   useEffect(() => {
-    let mounted = true;
-
-    const initializeMedia = async () => {
+    const initializeCall = async () => {
       try {
-        console.log("initializeMedia");
-        setIsLoading(true);
-        setError(null);
+        const storedUsername = await AsyncStorage.getItem("username");
+        const storedRoomId = await AsyncStorage.getItem("roomId");
 
-        if (mounted) {
-          webrtcService.setLocalStreamCallback((stream) => {
-            setLocalMediaStream(stream);
+        if (storedUsername && storedRoomId) {
+          setUsername(storedUsername);
+          setRoomId(storedRoomId);
+
+          setCallInfo({
+            username: storedUsername,
+            roomId: storedRoomId,
           });
-          webrtcService.setOnTrackCallback((stream) => {
-            setRemoteMediaStream(stream);
-          });
-
-          await webrtcService.initializeConnection(
-            "E1D7AE1C-B7D5-43D7-8811-A13E8AEC983A",
-            username
-          );
-          webrtcService.startStatsCollection((stats) => {
-            webrtcService.logCallQualityStats(stats);
-          }, 5000);
-
-          setIsLoading(false);
+          startCall(storedUsername, undefined, undefined, false);
         }
-      } catch (err) {
-        console.error("Error getting user media:", err);
-        if (mounted) {
-          setError(err.message);
-          setIsLoading(false);
-        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
       }
     };
 
-    if (signalrService.connectionStatus.state === ConnectionStates.CONNECTED) {
-      initializeMedia();
-    } else {
-      signalrService.onEvent("onConnected", initializeMedia);
-    }
-
-    return () => {
-      signalrService.offEvent("onConnected", initializeMedia);
-      if (localMediaStream) {
-        localMediaStream.getTracks().forEach((track) => {
-          track.stop();
-        });
-        setLocalMediaStream(null);
-      }
-
-      if (remoteMediaStream) {
-        remoteMediaStream.getTracks().forEach((track) => {
-          track.stop();
-        });
-        setRemoteMediaStream(null);
-      }
-
-      webrtcService.closeConnection();
-
-      webrtcService.setOnTrackCallback(null);
-      webrtcService.setLocalStreamCallback(null);
-      mounted = false;
-    };
-  }, [webrtcService]);
+    initializeCall();
+  }, [setCallInfo, startCall]);
 
   if (isLoading) {
     return (
@@ -127,12 +76,21 @@ export default function Meeting() {
     );
   }
 
+  if (isMinimized) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Call minimized - Check floating video</Text>
+      </View>
+    );
+  }
+
   return (
     <>
+      {/* Local video (draggable) */}
       {localMediaStream && !isVideoMuted ? (
         <DraggableContainer
-          initialPosition={draggableContainerPosition}
-          setDraggableContainerPosition={setDraggableContainerPosition}
+          initialPosition={{ x: 5, y: 5 }}
+          setDraggableContainerPosition={() => {}} // Simplified for now
           onSnapToCorner={(corner) => console.log("Snapped to:", corner)}
           cornerOffset={{ top: 5, left: 5, right: 10, bottom: 5 }}
         >
@@ -152,22 +110,20 @@ export default function Meeting() {
         </DraggableContainer>
       ) : (
         <DraggableContainer
-          initialPosition={draggableContainerPosition}
-          setDraggableContainerPosition={setDraggableContainerPosition}
+          initialPosition={{ x: 5, y: 5 }}
+          setDraggableContainerPosition={() => {}}
           onSnapToCorner={(corner) => console.log("Snapped to:", corner)}
           cornerOffset={{ top: 5, left: 5, right: 10, bottom: 5 }}
         >
           <View
             style={{
-              width: "auto",
-              height: "auto",
-              maxWidth: "70%",
-              maxHeight: "70%",
+              width: 150,
+              height: 200,
               backgroundColor: "#000",
               borderRadius: 8,
               margin: 5,
             }}
-          ></View>
+          />
         </DraggableContainer>
       )}
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -188,26 +144,24 @@ export default function Meeting() {
         ) : (
           <View
             style={{
-              width: "auto",
-              height: "auto",
-              maxWidth: "70%",
-              maxHeight: "70%",
+              width: 400,
+              height: 500,
               backgroundColor: "#000",
               borderRadius: 8,
               margin: 5,
             }}
-          ></View>
+          />
         )}
       </View>
       <MeetingMenuBar
         isAudioMuted={isAudioMuted}
         isVideoMuted={isVideoMuted}
-        setIsAudioMuted={setIsAudioMuted}
-        setIsVideoMuted={setIsVideoMuted}
+        isMinimized={isMinimized}
         onToggleAudio={onToggleAudio}
         onToggleVideo={onToggleVideo}
-        onToggleEndCall={onToggleEndCall}
+        onToggleEndCall={handleEndCall}
         onToggleFlipCamera={onToggleFlipCamera}
+        onToggleMinimize={onToggleMinimize}
       />
     </>
   );

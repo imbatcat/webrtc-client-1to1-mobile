@@ -52,7 +52,6 @@ class SignalRService {
             );
           },
         })
-        .configureLogging(LogLevel.Error)
         .build();
 
       const serverTimeoutMs = parseInt(
