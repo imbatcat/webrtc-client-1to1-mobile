@@ -3,6 +3,7 @@ export const HUB_METHODS = {
   LEAVE_ROOM: "LeaveRoom",
   SEND_MESSAGE: "SendMessage",
   SEND_ICE_CANDIDATE: "SendIceCandidate",
+  PING: "Ping",
 };
 
 export const CLIENT_METHODS = {

@@ -44,6 +44,7 @@ export const MeetingStateProvider = ({ children }) => {
   const [remoteMediaStream, setRemoteMediaStream] = useState(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [skipInitializeCall, setSkipInitializeCall] = useState(false);
 
   const { service: signalrService } = useSignalR();
   const { service: webrtcService } = useWebRTC();
@@ -77,6 +78,7 @@ export const MeetingStateProvider = ({ children }) => {
           if (isMinimized) {
             onToggleMinimize();
           } else {
+            console.log("username", callInfo.username);
             router.navigate("/meeting", {
               username: callInfo.username,
             });
@@ -132,7 +134,7 @@ export const MeetingStateProvider = ({ children }) => {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "Video Call in Progress",
-          body: `Connected with ${callInfo?.username || "participant"}`,
+          body: `Click to return to call`,
           data: { action: "return_to_call" },
           sticky: true,
           priority: "high",
@@ -164,8 +166,6 @@ export const MeetingStateProvider = ({ children }) => {
       }
       await BackgroundTask.registerTaskAsync(CALL_MAINTENANCE_TASK, {
         minimumInterval: 15000,
-        cancelOnTerminate: true,
-        stopOnTerminate: true,
       });
 
       console.log("background task registered");
@@ -249,6 +249,7 @@ export const MeetingStateProvider = ({ children }) => {
     webrtcService.setOnTrackCallback(null);
     webrtcService.setLocalStreamCallback(null);
 
+    setSkipInitializeCall(false);
     setIsInCall(false);
     setIsMinimized(false);
     setIsAudioMuted(false);
@@ -271,6 +272,7 @@ export const MeetingStateProvider = ({ children }) => {
         isLoading,
         error,
         callInfo,
+        skipInitializeCall,
 
         startCall,
         endCall,
@@ -283,6 +285,7 @@ export const MeetingStateProvider = ({ children }) => {
         hideCallNotifications,
         startBackgroundTask,
         stopBackgroundTask,
+        setSkipInitializeCall,
       }}
     >
       {children}

@@ -45,6 +45,9 @@ class WebRTCService {
   #statsInterval = null;
   #statsCallback = null;
   #isStatsCollectionActive = false;
+  #isAudioOff = false;
+  #isVideoOff = false;
+  #isFlipCamera = false;
 
   #handleMessageReceived = this.handleMessageReceived.bind(this);
   #handleCandidateReceived = this.handleCandidateReceived.bind(this);
@@ -106,7 +109,7 @@ class WebRTCService {
     };
   }
 
-  async initializeConnection(roomId, username) {
+  async initializeConnection(roomId, username, skipRoomJoin = false) {
     try {
       if (roomId) {
         this.#roomId = roomId;
@@ -122,7 +125,7 @@ class WebRTCService {
         this.#roomId
       );
 
-      if (roomId) {
+      if (roomId && !skipRoomJoin) {
         this.#isPolite = await signalrService.invokeHubMethod(
           HUB_METHODS.JOIN_ROOM,
           roomId
@@ -147,6 +150,7 @@ class WebRTCService {
   }
 
   async handleNegotiationNeeded() {
+    this.#iceCandidateQueue = [];
     if (!this.#peerConnection) {
       return;
     }
@@ -184,23 +188,39 @@ class WebRTCService {
     console.log(`WebRTC [${this.#username}]: Closing connection`);
 
     this.stopStatsCollection();
+    if (this.#localStream) {
+      this.#localStream.getTracks().forEach((track) => {
+        track.stop();
+      });
 
-    this.localStream = null;
+      this.localStream = null;
+    }
+
+    this.#isMakingOffer = false;
+
+    this.#isSettingRemoteAnswerPending = false;
+
+    this.#isIgnoreOffer = false;
+
     if (this.#localStreamCallback) {
       this.#localStreamCallback(null);
     }
 
+    if (this.#onTrackCallback) {
+      this.#onTrackCallback(null);
+    }
+
     await signalrService.invokeHubMethod(HUB_METHODS.LEAVE_ROOM, this.#roomId);
 
-    this.#peerConnection.onnegotiationneeded = null;
-    this.#peerConnection.ontrack = null;
-    this.#peerConnection.onicecandidate = null;
-    this.#peerConnection.onicegatheringstatechange = null;
-    this.#peerConnection.oniceconnectionstatechange = null;
-
-    this.#peerConnection.close();
-    this.#peerConnection = null;
-    this.unregisterSignalrHandlers();
+    if (this.#peerConnection) {
+      this.#peerConnection.onnegotiationneeded = null;
+      this.#peerConnection.ontrack = null;
+      this.#peerConnection.onicecandidate = null;
+      this.#peerConnection.onicegatheringstatechange = null;
+      this.#peerConnection.oniceconnectionstatechange = null;
+      this.#peerConnection.close();
+      this.#peerConnection = null;
+    }
   }
 
   setupWebRtcHandlers() {
@@ -249,7 +269,7 @@ class WebRTCService {
 
     this.#iceCandidateQueue = [];
 
-    this.initializeConnection();
+    this.initializeConnection(this.#roomId, this.#username, true);
   }
 
   async handleMessageReceived(message) {
@@ -389,10 +409,19 @@ class WebRTCService {
         console.log(`WebRTC [${this.#username}]: completed ice connection`);
         break;
       case "failed":
+        this.#peerConnection.restartIce();
+        await this.handleNegotiationNeeded();
         console.log(`WebRTC [${this.#username}]: failed ice connection`);
         break;
       case "disconnected":
         console.log(`WebRTC [${this.#username}]: disconnected ice connection`);
+        // restart after 3 seconds to allow temporary connection loss to be recovered
+        setTimeout(() => {
+          if (this.#peerConnection?.iceConnectionState === "disconnected") {
+            this.#peerConnection.restartIce();
+            this.handleNegotiationNeeded();
+          }
+        }, 3000);
         break;
       case "closed":
         console.log(`WebRTC [${this.#username}]: closed ice connection`);
@@ -456,6 +485,23 @@ class WebRTCService {
     const stream = await mediaDevices.getUserMedia(this.getMediaConstraints());
 
     this.#localStream = stream;
+    if (this.#isAudioOff) {
+      this.#localStream.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+
+    if (this.#isVideoOff) {
+      this.#localStream.getVideoTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+
+    if (this.#isFlipCamera) {
+      this.#localStream.getVideoTracks().forEach((track) => {
+        track._switchCamera();
+      });
+    }
     if (this.#localStreamCallback) {
       this.#localStreamCallback(stream);
     }
@@ -781,6 +827,7 @@ class WebRTCService {
   }
 
   toggleAudio() {
+    this.#isAudioOff = !this.#isAudioOff;
     if (this.#localStream) {
       this.#localStream.getAudioTracks().forEach((track) => {
         track.enabled = !track.enabled;
@@ -789,6 +836,7 @@ class WebRTCService {
   }
 
   toggleVideo() {
+    this.#isVideoOff = !this.#isVideoOff;
     if (this.#localStream) {
       this.#localStream.getVideoTracks().forEach((track) => {
         track.enabled = !track.enabled;
@@ -797,6 +845,7 @@ class WebRTCService {
   }
 
   toggleFlipCamera() {
+    this.#isFlipCamera = !this.#isFlipCamera;
     if (this.#localStream) {
       this.#localStream.getVideoTracks().forEach((track) => {
         track._switchCamera();

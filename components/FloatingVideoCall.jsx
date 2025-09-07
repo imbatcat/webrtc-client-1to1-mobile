@@ -14,12 +14,14 @@ export default function FloatingVideoCall() {
     isMinimized,
     localMediaStream,
     remoteMediaStream,
+    skipInitializeCall,
 
     onToggleAudio,
     onToggleVideo,
     endCall,
     onToggleFlipCamera,
     onToggleMinimize,
+    setSkipInitializeCall,
   } = useMeetingState();
   const [draggableContainerPosition, setDraggableContainerPosition] = useState({
     x: 5,
@@ -27,8 +29,11 @@ export default function FloatingVideoCall() {
   });
 
   const handleOnToggleMinimize = () => {
-    router.navigate("/meeting");
+    if (!skipInitializeCall) {
+      setSkipInitializeCall(true);
+    }
     onToggleMinimize();
+    router.navigate("/meeting");
   };
 
   if (!isInCall || !isMinimized) {

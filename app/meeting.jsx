@@ -20,6 +20,8 @@ export default function Meeting() {
     isAudioMuted,
     isVideoMuted,
     isMinimized,
+    skipInitializeCall,
+    callInfo,
 
     // Methods
     setCallInfo,
@@ -37,6 +39,15 @@ export default function Meeting() {
   };
   // Load user data from AsyncStorage and initialize call
   useEffect(() => {
+    console.log(
+      "skipInitializeCall",
+      skipInitializeCall,
+      "callInfo.username",
+      callInfo?.username
+    );
+    if (skipInitializeCall) {
+      return;
+    }
     const initializeCall = async () => {
       try {
         const storedUsername = await AsyncStorage.getItem("username");
@@ -56,9 +67,8 @@ export default function Meeting() {
         console.error("Error loading user data:", error);
       }
     };
-
     initializeCall();
-  }, [setCallInfo, startCall]);
+  }, [setCallInfo, startCall, skipInitializeCall]);
 
   if (isLoading) {
     return (

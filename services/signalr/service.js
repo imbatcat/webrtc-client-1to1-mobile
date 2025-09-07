@@ -59,12 +59,12 @@ class SignalRService {
         10
       );
       const keepAliveMs = parseInt(
-        process.env.EXPO_PUBLIC_SIGNALR_KEEPALIVE_MS ?? "30000",
+        process.env.EXPO_PUBLIC_SIGNALR_KEEPALIVE_MS ?? "10000",
         10
       );
 
-      // this.#connection.serverTimeoutInMilliseconds = serverTimeoutMs;
-      // this.#connection.keepAliveIntervalInMilliseconds = keepAliveMs;
+      this.#connection.serverTimeoutInMilliseconds = serverTimeoutMs;
+      this.#connection.keepAliveIntervalInMilliseconds = keepAliveMs;
       // Start connection with 15 second timeout
       await Promise.race([
         this.#connection.start(),

@@ -25,7 +25,6 @@ export const WebRTCProvider = ({ children }) => {
   const { service: signalrService } = useSignalR();
   const service = useMemo(() => new WebRTCService(), []);
 
-  // Create bound methods that maintain proper 'this' context for private fields
   const boundRegisterHandlers = useMemo(
     () => service.registerSignalrHandlers.bind(service),
     [service]

@@ -1,5 +1,7 @@
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
+import { HUB_METHODS } from "../signalr/signalingMethods";
+import signalrService from "../signalr/service";
 
 const CALL_MAINTENANCE_TASK = "CALL_MAINTENANCE_TASK";
 
@@ -31,6 +33,9 @@ TaskManager.defineTask(
 
 const maintainSignalRConnection = async () => {
   console.log("maintaining signalr connection");
+  setInterval(() => {
+    signalrService.send(HUB_METHODS.PING, {});
+  }, 5000);
 };
 const maintainWebRTCConnection = async () => {
   console.log("maintaining webrtc connection");
