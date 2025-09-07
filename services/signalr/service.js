@@ -52,7 +52,6 @@ class SignalRService {
             );
           },
         })
-        .configureLogging(LogLevel.Error)
         .build();
 
       const serverTimeoutMs = parseInt(
@@ -206,7 +205,7 @@ class SignalRService {
   }
 
   triggerCallback(eventName, data = null) {
-    console.log("SignalR: Triggering callback", eventName, data);
+    // console.log("SignalR: Triggering callback", eventName, data);
     if (this.#connectionCallbacks.has(eventName)) {
       this.#connectionCallbacks.get(eventName).forEach((callback) => {
         try {
@@ -265,7 +264,7 @@ class SignalRService {
   }
 
   invokeHubMethod(methodName, ...args) {
-    console.log("InvokeHubMethod", methodName, args);
+    // console.log("InvokeHubMethod", methodName, args);
     if (!this.#connection) {
       return Promise.reject(new Error("Hub connection is not initialized."));
     }

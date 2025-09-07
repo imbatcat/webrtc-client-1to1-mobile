@@ -9,10 +9,8 @@ import { useSignalR } from "./signalrContext";
 import WebRTCService from "../services/webrtc/service";
 import { ConnectionStates } from "../services/signalr/ConnectionStates";
 
-// Create the context
 const WebRTCContext = createContext();
 
-// Custom hook to use the WebRTC context
 export const useWebRTC = () => {
   const context = useContext(WebRTCContext);
   if (!context) {
@@ -22,10 +20,9 @@ export const useWebRTC = () => {
 };
 
 export const WebRTCProvider = ({ children }) => {
-  const { service: signalrService } = useSignalR();
   const service = useMemo(() => new WebRTCService(), []);
+  const { service: signalrService } = useSignalR();
 
-  // Create bound methods that maintain proper 'this' context for private fields
   const boundRegisterHandlers = useMemo(
     () => service.registerSignalrHandlers.bind(service),
     [service]

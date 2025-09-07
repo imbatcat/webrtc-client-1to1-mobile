@@ -31,7 +31,6 @@ export default function Meeting() {
     webrtcService.toggleVideo();
     setIsVideoMuted(!isVideoMuted);
   };
-  console.log("meeting");
   const onToggleEndCall = () => {
     webrtcService.closeConnection();
     router.navigate("/");
@@ -67,7 +66,7 @@ export default function Meeting() {
             username
           );
           webrtcService.startStatsCollection((stats) => {
-            webrtcService.logCallQualityStats(stats);
+            // webrtcService.logCallQualityStats(stats);
           }, 5000);
 
           setIsLoading(false);
