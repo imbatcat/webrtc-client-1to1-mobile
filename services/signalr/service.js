@@ -1,4 +1,5 @@
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import { Platform, NativeModules } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as signalR from "@microsoft/signalr";
 
@@ -25,6 +26,36 @@ class SignalRService {
 
   async startConnection() {
     try {
+      if (
+        Platform.OS === "android" &&
+        process.env.EXPO_PUBLIC_SIGNALR_NATIVE === "1"
+      ) {
+        const hubUrl = process.env.EXPO_PUBLIC_HUB_URL;
+        const accessToken = await AsyncStorage.getItem("accessToken");
+        const serverTimeoutMs = parseInt(
+          process.env.EXPO_PUBLIC_SIGNALR_SERVER_TIMEOUT_MS ?? "60000",
+          10
+        );
+        const keepAliveMs = parseInt(
+          process.env.EXPO_PUBLIC_SIGNALR_KEEPALIVE_MS ?? "30000",
+          10
+        );
+        const groups = this.#groups;
+        await NativeModules.SignalRService.startService({
+          hubUrl,
+          accessToken,
+          groups,
+          keepAliveMs,
+          serverTimeoutMs,
+          notificationTitle: "Connecting…",
+          notificationText: "Maintaining real-time connection",
+        });
+        this.#connection = { state: signalR.HubConnectionState.Connected }; // TODO: wtf
+        this.triggerCallback("onConnected");
+        this.#setupLifeCycleHandlers();
+        return;
+      }
+
       const hubUrl = process.env.EXPO_PUBLIC_HUB_URL;
       console.log("hubUrl", hubUrl);
       if (!hubUrl) {
@@ -34,6 +65,15 @@ class SignalRService {
       const accessToken = await AsyncStorage.getItem("accessToken");
       console.log("accessToken", accessToken);
 
+      const serverTimeoutMs = parseInt(
+        process.env.EXPO_PUBLIC_SIGNALR_SERVER_TIMEOUT_MS ?? "60000",
+        10
+      );
+      const keepAliveMs = parseInt(
+        process.env.EXPO_PUBLIC_SIGNALR_KEEPALIVE_MS ?? "30000",
+        10
+      );
+
       // Build connection with authentication
       this.#connection = new HubConnectionBuilder()
         .withUrl(hubUrl, {
@@ -41,6 +81,8 @@ class SignalRService {
           skipNegotiation: true,
           transport: signalR.HttpTransportType.WebSockets,
         })
+        .withServerTimeout(serverTimeoutMs)
+        .withKeepAliveInterval(keepAliveMs)
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {
             if (retryContext.previousRetryCount === 0) {
@@ -54,18 +96,7 @@ class SignalRService {
         })
         .build();
 
-      const serverTimeoutMs = parseInt(
-        process.env.EXPO_PUBLIC_SIGNALR_SERVER_TIMEOUT_MS ?? "90000",
-        10
-      );
-      const keepAliveMs = parseInt(
-        process.env.EXPO_PUBLIC_SIGNALR_KEEPALIVE_MS ?? "10000",
-        10
-      );
-
-      this.#connection.serverTimeoutInMilliseconds = serverTimeoutMs;
-      this.#connection.keepAliveIntervalInMilliseconds = keepAliveMs;
-      // Start connection with 15 second timeout
+      // add a timeout to wait connection to start, with 15s timeout
       await Promise.race([
         this.#connection.start(),
         new Promise((_, reject) =>
@@ -144,6 +175,19 @@ class SignalRService {
   }
 
   async stopConnection() {
+    if (
+      Platform.OS === "android" &&
+      process.env.EXPO_PUBLIC_SIGNALR_NATIVE === "1"
+    ) {
+      try {
+        await NativeModules.SignalRService.stopService();
+      } catch (e) {
+        console.error("SignalR: Error stopping native service", e);
+      } finally {
+        this.#connectionCallbacks.clear();
+      }
+      return;
+    }
     if (this.#connection) {
       try {
         await this.#connection.stop();

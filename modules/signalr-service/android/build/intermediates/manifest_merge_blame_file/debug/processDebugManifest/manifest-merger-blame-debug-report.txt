@@ -1,0 +1,26 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="expo.modules.signalrservice" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+6
+7    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+7-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:2:3-75
+7-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:2:20-72
+8    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+8-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:3:3-75
+8-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:3:20-72
+9
+10    <application>
+10-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:5:3-10:17
+11        <service
+11-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:6:5-9:50
+12            android:name="expo.modules.signalrservice.SignalRForegroundService"
+12-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:7:7-74
+13            android:exported="false"
+13-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:8:7-31
+14            android:foregroundServiceType="dataSync" />
+14-->F:\Projects\personal\webrtc-client-1to1-mobile - Copy\modules\signalr-service\android\src\main\AndroidManifest.xml:9:7-47
+15    </application>
+16
+17</manifest>

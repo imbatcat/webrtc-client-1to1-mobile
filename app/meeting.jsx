@@ -37,6 +37,7 @@ export default function Meeting() {
   const handleEndCall = () => {
     endCall();
   };
+
   // Load user data from AsyncStorage and initialize call
   useEffect(() => {
     console.log(

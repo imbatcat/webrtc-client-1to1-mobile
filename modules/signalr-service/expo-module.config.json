@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["SignalrServiceModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.signalrservice.SignalrServiceModule"]
+  }
+}

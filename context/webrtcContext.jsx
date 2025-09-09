@@ -43,6 +43,7 @@ export const WebRTCProvider = ({ children }) => {
     signalrService.onEvent("onDisconnected", boundUnregisterHandlers);
 
     return () => {
+      console.log("unmounting webrtc context");
       signalrService.offEvent("onConnected", boundRegisterHandlers);
       try {
         service.unregisterSignalrHandlers(); // unregister incase onDisconnected is not called

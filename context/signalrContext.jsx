@@ -21,6 +21,11 @@ export const SignalRProvider = ({ children }) => {
     (async () => {
       await service.startConnection();
     })();
+
+    return () => {
+      console.log("unmounting signalr context");
+      service.stopConnection();
+    };
   }, []);
 
   return (
