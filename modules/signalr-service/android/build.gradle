@@ -1,11 +1,29 @@
-apply plugin: 'com.android.library'
+// Ensure plugin repositories are available when building standalone
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle:8.7.3')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.21')
+  }
+}
 
 group = 'expo.modules.signalrservice'
 version = '0.7.2'
 
-def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+def expoModulesCorePlugin = new File(
+  providers.exec {
+    workingDir(rootDir.parentFile)
+    commandLine("node", "--print", "require.resolve('expo-modules-core/android/ExpoModulesCorePlugin.gradle')")
+  }.standardOutput.asText.get().trim()
+)
 apply from: expoModulesCorePlugin
 applyKotlinExpoModulesCorePlugin()
+
+apply plugin: 'com.android.library'
+
 useCoreDependencies()
 useExpoPublishing()
 

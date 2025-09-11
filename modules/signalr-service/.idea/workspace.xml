@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="82c32191-e2c4-4051-8627-4c6aceb76660" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../../.vscode/settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/../../.vscode/settings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/../../android/app/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/.gradle/buildOutputCleanup/cache.properties" beforeDir="false" afterPath="$PROJECT_DIR$/android/.gradle/buildOutputCleanup/cache.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/src/main/java/expo/modules/signalrservice/SignalRForegroundService.java" beforeDir="false" afterPath="$PROJECT_DIR$/android/src/main/java/expo/modules/signalrservice/SignalRForegroundService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/src/main/java/expo/modules/signalrservice/SignalrServiceView.kt" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "imbatcat"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/imbatcat/webrtc-client-1to1-mobile.git",
+    "accountId": "592a3b3a-8aaa-4129-b1fa-5c73f6a473d8"
+  }
+}]]></component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 7
+}]]></component>
+  <component name="ProjectId" id="32Xhcr6gErTOGeYb0tgDmCAR8Mo" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "dart.analysis.tool.window.visible": "false",
+    "git-widget-placeholder": "v2",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "F:/Projects/personal/webrtc-client-1to1-mobile - Copy/modules/signalr-service",
+    "show.migrate.to.gradle.popup": "false"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="82c32191-e2c4-4051-8627-4c6aceb76660" name="Changes" comment="" />
+      <created>1757572906237</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1757572906237</updated>
+    </task>
+    <servers />
+  </component>
+</project>

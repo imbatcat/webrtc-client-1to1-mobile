@@ -12,6 +12,20 @@ declare class SignalrServiceModule extends NativeModule<{}> {
   }): Promise<boolean>;
 
   stopService(): Promise<boolean>;
+
+  onEvent(eventName: string, callback: Promise<any>): Promise<void>;
+
+  offEvent(eventName: string, callback: Promise<any>): Promise<void>;
+
+  registerHandlers(): Promise<void>;
+
+  unregisterHandlers(): Promise<void>;
+
+  invoke(methodName: string, args: any[]): Promise<any>;
+
+  send(methodName: string, args: any[]): Promise<void>;
+
+  getConnectionStatus(): Promise<string>;
 }
 
 export default requireNativeModule<SignalrServiceModule>("SignalrService");

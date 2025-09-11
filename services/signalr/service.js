@@ -50,9 +50,9 @@ class SignalRService {
           notificationTitle: "Connecting…",
           notificationText: "Maintaining real-time connection",
         });
-        this.#connection = { state: signalR.HubConnectionState.Connected }; // TODO: wtf
-        this.triggerCallback("onConnected");
-        this.#setupLifeCycleHandlers();
+        // this.#connection = { state: signalR.HubConnectionState.Connected }; // TODO: wtf
+        // this.triggerCallback("onConnected");
+        // this.#setupLifeCycleHandlers();
         return;
       }
 

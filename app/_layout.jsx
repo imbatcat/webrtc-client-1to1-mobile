@@ -6,6 +6,7 @@ import { registerGlobals } from "react-native-webrtc";
 import { SignalRProvider } from "../context/signalrContext";
 import { MeetingStateProvider } from "../context/meetingStateContext";
 import FloatingVideoCall from "../components/FloatingVideoCall";
+import signalrService from "../services/signalr/service";
 // import * as NavigationBar from "expo-navigation-bar";
 
 export default function RootLayout() {
@@ -16,16 +17,17 @@ export default function RootLayout() {
   //   };
   // }, []);
   registerGlobals();
+  signalrService.startConnection();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SignalRProvider>
-        <WebRTCProvider>
-          <MeetingStateProvider>
-            <Slot />
-            <FloatingVideoCall />
-          </MeetingStateProvider>
-        </WebRTCProvider>
-      </SignalRProvider>
+      {/* <SignalRProvider> */}
+      <WebRTCProvider>
+        <MeetingStateProvider>
+          <Slot />
+          <FloatingVideoCall />
+        </MeetingStateProvider>
+      </WebRTCProvider>
+      {/* </SignalRProvider> */}
     </GestureHandlerRootView>
   );
 }
