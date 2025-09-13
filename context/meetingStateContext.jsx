@@ -15,7 +15,7 @@ import AppStates from "../constants/AppStates";
 import { hide } from "expo-router/build/utils/splash";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
-import { CALL_MAINTENANCE_TASK } from "../services/backgroundTasks/callMaintenance";
+import SignalrServiceModule from "../modules/signalr-service/src/SignalrServiceModule";
 
 const MeetingStateContext = createContext();
 
@@ -46,7 +46,7 @@ export const MeetingStateProvider = ({ children }) => {
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [skipInitializeCall, setSkipInitializeCall] = useState(false);
 
-  const { service: signalrService } = useSignalR();
+  // const { service: signalrService } = useSignalR();
   const { service: webrtcService } = useWebRTC();
 
   const onToggleFlipCamera = useCallback(() => {
@@ -157,17 +157,6 @@ export const MeetingStateProvider = ({ children }) => {
   const startBackgroundTask = useCallback(async () => {
     try {
       console.log("starting background task");
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(
-        CALL_MAINTENANCE_TASK
-      );
-      if (isRegistered) {
-        console.log("background task already registered");
-        return;
-      }
-      await BackgroundTask.registerTaskAsync(CALL_MAINTENANCE_TASK, {
-        minimumInterval: 15000,
-      });
-
       console.log("background task registered");
     } catch (error) {
       console.error("Failed to start background task:", error);
@@ -177,14 +166,7 @@ export const MeetingStateProvider = ({ children }) => {
   const stopBackgroundTask = useCallback(async () => {
     try {
       console.log("stopping background task");
-      const isRegistered = await TaskManager.isTaskRegisteredAsync(
-        CALL_MAINTENANCE_TASK
-      );
 
-      if (!isRegistered) {
-        return;
-      }
-      await BackgroundTask.unregisterTaskAsync(CALL_MAINTENANCE_TASK);
       console.log("background task unregistered");
     } catch (error) {
       console.error("Failed to stop background task:", error);
@@ -197,6 +179,8 @@ export const MeetingStateProvider = ({ children }) => {
       logInverval = DEFAULT_LOG_INTERVAL,
       logStats = true
     ) => {
+      console.log("startCall", username, roomId, logInverval, logStats);
+      console.log("getConnectionStatus");
       const initializeWebRTC = async () => {
         webrtcService.setLocalStreamCallback((stream) => {
           setLocalMediaStream(stream);
@@ -220,18 +204,25 @@ export const MeetingStateProvider = ({ children }) => {
 
         setIsInCall(true);
 
-        signalrService.offEvent("onConnected", initializeWebRTC);
+        SignalrServiceModule.removeListener("onConnected", () =>
+          initializeWebRTC()
+        );
       };
 
       if (
-        signalrService.connectionStatus.state === ConnectionStates.CONNECTED
+        (await SignalrServiceModule.getConnectionStatus()) ===
+        ConnectionStates.CONNECTED.toLocaleLowerCase()
       ) {
+        console.log("startCall onConnected");
         await initializeWebRTC();
       } else {
-        signalrService.onEvent("onConnected", initializeWebRTC);
+        SignalrServiceModule.addListener("onConnected", () =>
+          initializeWebRTC()
+        );
+        // signalrService.onEvent("onConnected", initializeWebRTC);
       }
     },
-    [webrtcService, signalrService]
+    [webrtcService]
   );
 
   const endCall = useCallback(() => {

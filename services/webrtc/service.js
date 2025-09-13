@@ -1,8 +1,6 @@
 import { mediaDevices } from "react-native-webrtc";
-import signalrService from "../signalr/service";
-import registerHandlers from "../signalr/registerHandlers";
-import unregisterHandlers from "../signalr/unregisterHandlers";
 import { HUB_METHODS, CLIENT_METHODS } from "../signalr/signalingMethods";
+import SignalrServiceModule from "../../modules/signalr-service/src/SignalrServiceModule";
 
 const iceServers = [
   {
@@ -126,9 +124,9 @@ class WebRTCService {
       );
 
       if (roomId && !skipRoomJoin) {
-        this.#isPolite = await signalrService.invokeHubMethod(
+        this.#isPolite = await SignalrServiceModule.invoke(
           HUB_METHODS.JOIN_ROOM,
-          roomId
+          [roomId]
         );
       }
 
@@ -168,11 +166,10 @@ class WebRTCService {
         this.#peerConnection.signalingState
       );
 
-      await signalrService.invokeHubMethod(
-        HUB_METHODS.SEND_MESSAGE,
+      await SignalrServiceModule.invoke(HUB_METHODS.SEND_MESSAGE, [
         this.#roomId,
-        offer
-      );
+        offer,
+      ]);
       console.log(`WebRTC [${this.#username}]: offer sent`);
     } catch (error) {
       console.warn(
@@ -210,7 +207,7 @@ class WebRTCService {
       this.#onTrackCallback(null);
     }
 
-    await signalrService.invokeHubMethod(HUB_METHODS.LEAVE_ROOM, this.#roomId);
+    await SignalrServiceModule.invoke(HUB_METHODS.LEAVE_ROOM, [this.#roomId]);
 
     if (this.#peerConnection) {
       this.#peerConnection.onnegotiationneeded = null;
@@ -323,11 +320,10 @@ class WebRTCService {
       if (message.type === "offer") {
         console.log(`WebRTC [${this.#username}]: Setting local description`);
         await this.#peerConnection.setLocalDescription();
-        await signalrService.invokeHubMethod(
-          HUB_METHODS.SEND_MESSAGE,
+        await SignalrServiceModule.invoke(HUB_METHODS.SEND_MESSAGE, [
           this.#roomId,
-          this.#peerConnection.localDescription
-        );
+          this.#peerConnection.localDescription,
+        ]);
       }
     } catch (error) {
       this.#isSettingRemoteAnswerPending = false;
@@ -385,12 +381,10 @@ class WebRTCService {
   async handleOnIceCandidate(event) {
     console.log(`WebRTC [${this.#username}]: candidate:`, event.candidate);
 
-    await signalrService.invokeHubMethod(
-      HUB_METHODS.SEND_ICE_CANDIDATE,
+    await SignalrServiceModule.invoke(HUB_METHODS.SEND_ICE_CANDIDATE, [
       this.#roomId,
-      event.candidate
-    );
-
+      event.candidate,
+    ]);
     console.log(`WebRTC [${this.#username}]: candidate sent`);
   }
 
@@ -429,37 +423,34 @@ class WebRTCService {
     }
   }
   registerSignalrHandlers() {
-    registerHandlers(
-      signalrService.connection,
-      signalrService.boundTriggerCallback
-    );
-
-    signalrService.onEvent(
+    SignalrServiceModule.registerHandlers();
+    SignalrServiceModule.addListener(
       CLIENT_METHODS.RECEIVE_MESSAGE,
-      this.#handleMessageReceived
+      (message) => this.#handleMessageReceived(message)
     );
-    signalrService.onEvent(
+    SignalrServiceModule.addListener(
       CLIENT_METHODS.RECEIVE_ICE_CANDIDATE,
-      this.#handleCandidateReceived
+      (candidate) => this.#handleCandidateReceived(candidate)
     );
-    signalrService.onEvent(CLIENT_METHODS.USER_LEFT, this.#handleUserLeft);
+    SignalrServiceModule.addListener(CLIENT_METHODS.USER_LEFT, (username) =>
+      this.#handleUserLeft(username)
+    );
   }
 
   unregisterSignalrHandlers() {
-    unregisterHandlers(
-      signalrService.connection,
-      signalrService.boundTriggerCallback
-    );
-
-    signalrService.offEvent(
+    SignalrServiceModule.unregisterHandlers();
+    SignalrServiceModule.removeListener(
       CLIENT_METHODS.RECEIVE_MESSAGE,
-      this.#handleMessageReceived
+      () => this.#handleMessageReceived
     );
-    signalrService.offEvent(
+    SignalrServiceModule.removeListener(
       CLIENT_METHODS.RECEIVE_ICE_CANDIDATE,
-      this.#handleCandidateReceived
+      () => this.#handleCandidateReceived
     );
-    signalrService.offEvent(CLIENT_METHODS.USER_LEFT, this.#handleUserLeft);
+    SignalrServiceModule.removeListener(
+      CLIENT_METHODS.USER_LEFT,
+      () => this.#handleUserLeft
+    );
   }
 
   setOnTrackCallback(callback) {

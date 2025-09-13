@@ -2,6 +2,7 @@ import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 import { Platform, NativeModules } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as signalR from "@microsoft/signalr";
+import SignalrServiceModule from "../../modules/signalr-service/src/SignalrServiceModule";
 
 class SignalRService {
   #connection = null;
@@ -30,23 +31,24 @@ class SignalRService {
         Platform.OS === "android" &&
         process.env.EXPO_PUBLIC_SIGNALR_NATIVE === "1"
       ) {
+        console.log("Starting SignalR connection in foreground service");
         const hubUrl = process.env.EXPO_PUBLIC_HUB_URL;
         const accessToken = await AsyncStorage.getItem("accessToken");
         const serverTimeoutMs = parseInt(
-          process.env.EXPO_PUBLIC_SIGNALR_SERVER_TIMEOUT_MS ?? "60000",
+          process.env.EXPO_PUBLIC_SIGNALR_SERVER_TIMEOUT_MS ?? "600000",
           10
         );
         const keepAliveMs = parseInt(
-          process.env.EXPO_PUBLIC_SIGNALR_KEEPALIVE_MS ?? "30000",
+          process.env.EXPO_PUBLIC_SIGNALR_KEEPALIVE_MS ?? "300000",
           10
         );
         const groups = this.#groups;
-        await NativeModules.SignalRService.startService({
-          hubUrl,
-          accessToken,
-          groups,
-          keepAliveMs,
-          serverTimeoutMs,
+        SignalrServiceModule.startService({
+          hubUrl: hubUrl,
+          accessToken: accessToken,
+          groups: groups,
+          keepAliveMs: keepAliveMs,
+          serverTimeoutMs: serverTimeoutMs,
           notificationTitle: "Connecting…",
           notificationText: "Maintaining real-time connection",
         });
@@ -180,7 +182,7 @@ class SignalRService {
       process.env.EXPO_PUBLIC_SIGNALR_NATIVE === "1"
     ) {
       try {
-        await NativeModules.SignalRService.stopService();
+        await SignalrServiceModule.stopService();
       } catch (e) {
         console.error("SignalR: Error stopping native service", e);
       } finally {

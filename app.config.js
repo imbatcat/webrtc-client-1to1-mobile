@@ -30,7 +30,7 @@ export default ({ config }) => ({
         "USE_FULL_SCREEN_INTENT",
         "POST_NOTIFICATIONS",
       ],
-      edgeToEdgeEnabled: true,
+      edgeToEdgeEnabled: false,
       package: "com.oranged_cat.webrtcclient1to1mobile",
     },
     web: {
@@ -57,7 +57,7 @@ export default ({ config }) => ({
         "expo-build-properties",
         {
           android: {
-            kotlinVersion: "2.0.21",
+            kotlinVersion: "2.0.21", // Match your Gradle Kotlin version
           },
         },
       ],

@@ -17,7 +17,6 @@ export default function RootLayout() {
   //   };
   // }, []);
   registerGlobals();
-  signalrService.startConnection();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {/* <SignalRProvider> */}

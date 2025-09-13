@@ -33,19 +33,12 @@ export default function Meeting() {
     onToggleMinimize,
   } = useMeetingState();
 
-  // Handle end call with navigation
   const handleEndCall = () => {
     endCall();
   };
 
-  // Load user data from AsyncStorage and initialize call
   useEffect(() => {
-    console.log(
-      "skipInitializeCall",
-      skipInitializeCall,
-      "callInfo.username",
-      callInfo?.username
-    );
+    console.log("skipInitializeCall", skipInitializeCall);
     if (skipInitializeCall) {
       return;
     }
@@ -58,11 +51,13 @@ export default function Meeting() {
           setUsername(storedUsername);
           setRoomId(storedRoomId);
 
+          console.log("storedUsername", storedUsername);
+          console.log("storedRoomId", storedRoomId);
           setCallInfo({
             username: storedUsername,
             roomId: storedRoomId,
           });
-          startCall(storedUsername, undefined, undefined, false);
+          startCall(storedUsername, storedRoomId, undefined, false);
         }
       } catch (error) {
         console.error("Error loading user data:", error);
