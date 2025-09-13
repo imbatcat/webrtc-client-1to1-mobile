@@ -8,8 +8,7 @@ import React, {
 import { useSignalR } from "./signalrContext";
 import WebRTCService from "../services/webrtc/service";
 import { ConnectionStates } from "../services/signalr/ConnectionStates";
-import SignalrServiceModule from "../modules/signalr-service/src/SignalrServiceModule";
-import signalrService from "../services/signalr/service";
+import { requireNativeModule } from "expo";
 
 // Create the context
 const WebRTCContext = createContext();
@@ -24,7 +23,7 @@ export const useWebRTC = () => {
 };
 
 export const WebRTCProvider = ({ children }) => {
-  // const { service: signalrService } = useSignalR();
+  const SignalrEventSub = requireNativeModule("SignalrService");
   const service = useMemo(() => new WebRTCService(), []);
 
   const boundRegisterHandlers = useMemo(
@@ -37,21 +36,24 @@ export const WebRTCProvider = ({ children }) => {
   );
 
   useEffect(() => {
+    let connectedSub;
+    let disconnectedSub;
+
     const initializeHandlers = async () => {
       console.log("registering signalr handlers");
       if (
-        (await SignalrServiceModule.getConnectionStatus()) ===
+        (await SignalrEventSub.getConnectionStatus()) ===
         ConnectionStates.CONNECTED.toLocaleLowerCase()
       ) {
         console.log("onConnected");
         boundRegisterHandlers();
       } else {
         console.log("onConnected not registered");
-        SignalrServiceModule.addListener("onConnected", () =>
+        connectedSub = SignalrEventSub.addListener("onConnected", () =>
           boundRegisterHandlers()
         );
       }
-      SignalrServiceModule.addListener("onDisconnected", () =>
+      disconnectedSub = SignalrEventSub.addListener("onDisconnected", () =>
         boundUnregisterHandlers()
       );
     };
@@ -60,17 +62,15 @@ export const WebRTCProvider = ({ children }) => {
 
     return () => {
       console.log("unmounting webrtc context");
-      SignalrServiceModule.removeListener("onConnected", () =>
-        boundRegisterHandlers()
-      );
       try {
-        service.unregisterSignalrHandlers.bind(service); // unregister incase onDisconnected is not called
+        connectedSub?.remove?.();
+        disconnectedSub?.remove?.();
+      } catch {}
+      try {
+        service.unregisterSignalrHandlers();
       } catch (error) {
         console.error("Error unregistering signalr handlers:", error);
       }
-      SignalrServiceModule.removeListener("onDisconnected", () =>
-        boundUnregisterHandlers()
-      );
     };
   }, [service, boundRegisterHandlers, boundUnregisterHandlers]);
 

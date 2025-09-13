@@ -1,6 +1,7 @@
 import { registerWebModule, NativeModule } from "expo";
+import { SignalrServiceModuleEvents } from "./SignalrService.types";
 
-class SignalrServiceModule extends NativeModule<{}> {
+class SignalrServiceModule extends NativeModule<SignalrServiceModuleEvents> {
   async startService(): Promise<boolean> {
     console.warn("[SignalrService] startService is a no-op on web");
     return false;

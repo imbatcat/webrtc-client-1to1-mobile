@@ -7,26 +7,35 @@ import { SignalRProvider } from "../context/signalrContext";
 import { MeetingStateProvider } from "../context/meetingStateContext";
 import FloatingVideoCall from "../components/FloatingVideoCall";
 import signalrService from "../services/signalr/service";
-// import * as NavigationBar from "expo-navigation-bar";
+import * as Notifications from "expo-notifications";
 
 export default function RootLayout() {
-  // useEffect(() => {
-  //   NavigationBar.setVisibilityAsync("hidden");
-  //   return () => {
-  //     NavigationBar.setVisibilityAsync("visible");
-  //   };
-  // }, []);
   registerGlobals();
+  useEffect(() => {
+    const requestNotificationPermissions = async () => {
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        console.log("Notification permission status:", status);
+
+        if (status !== "granted") {
+          console.warn("Notification permissions not granted");
+        }
+      } catch (error) {
+        console.error("Failed to request notification permissions:", error);
+      }
+    };
+
+    requestNotificationPermissions();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {/* <SignalRProvider> */}
       <WebRTCProvider>
         <MeetingStateProvider>
           <Slot />
           <FloatingVideoCall />
         </MeetingStateProvider>
       </WebRTCProvider>
-      {/* </SignalRProvider> */}
     </GestureHandlerRootView>
   );
 }

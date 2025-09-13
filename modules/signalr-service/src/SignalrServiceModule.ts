@@ -1,6 +1,7 @@
 import { NativeModule, requireNativeModule } from "expo";
+import { SignalrServiceModuleEvents } from "./SignalrService.types";
 
-declare class SignalrServiceModule extends NativeModule<{}> {
+declare class SignalrServiceModule extends NativeModule<SignalrServiceModuleEvents> {
   startService(config: {
     hubUrl: string;
     accessToken?: string;
@@ -12,10 +13,6 @@ declare class SignalrServiceModule extends NativeModule<{}> {
   }): Promise<boolean>;
 
   stopService(): Promise<boolean>;
-
-  onEvent(eventName: string, callback: Promise<any>): Promise<void>;
-
-  offEvent(eventName: string, callback: Promise<any>): Promise<void>;
 
   registerHandlers(): Promise<void>;
 

@@ -10,7 +10,6 @@ export default function Meeting() {
   const [username, setUsername] = useState("");
   const [roomId, setRoomId] = useState("");
 
-  // Get everything from global context
   const {
     // State
     localMediaStream,

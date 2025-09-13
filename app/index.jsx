@@ -49,6 +49,7 @@ export default function Login() {
         await AsyncStorage.setItem("roomId", roomId);
 
         signalrService.startConnection();
+
         router.push({
           pathname: "/navigation",
         });

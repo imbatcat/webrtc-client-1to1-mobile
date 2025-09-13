@@ -16,6 +16,7 @@ import { hide } from "expo-router/build/utils/splash";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import SignalrServiceModule from "../modules/signalr-service/src/SignalrServiceModule";
+import { requireNativeModule } from "expo";
 
 const MeetingStateContext = createContext();
 
@@ -29,6 +30,7 @@ export const useMeetingState = () => {
   return context;
 };
 export const MeetingStateProvider = ({ children }) => {
+  const SignalrEventSub = requireNativeModule("SignalrService");
   const router = useRouter();
   const DEFAULT_LOG_INTERVAL = 5000;
 
@@ -193,20 +195,20 @@ export const MeetingStateProvider = ({ children }) => {
           roomId ? roomId : "E1D7AE1C-B7D5-43D7-8811-A13E8AEC983A",
           username
         );
-        webrtcService.startStatsCollection(
-          (stats) => {
-            if (logStats) {
-              // webrtcService.logCallQualityStats(stats);
-            }
-          },
-          logInverval ? parseInt(logInverval) : DEFAULT_LOG_INTERVAL
-        );
+        // webrtcService.startStatsCollection(
+        //   (stats) => {
+        //     if (logStats) {
+        //       // webrtcService.logCallQualityStats(stats);
+        //     }
+        //   },
+        //   logInverval ? parseInt(logInverval) : DEFAULT_LOG_INTERVAL
+        // );
 
         setIsInCall(true);
 
-        SignalrServiceModule.removeListener("onConnected", () =>
-          initializeWebRTC()
-        );
+        try {
+          onConnectedSub?.remove?.();
+        } catch {}
       };
 
       if (
@@ -216,10 +218,10 @@ export const MeetingStateProvider = ({ children }) => {
         console.log("startCall onConnected");
         await initializeWebRTC();
       } else {
-        SignalrServiceModule.addListener("onConnected", () =>
-          initializeWebRTC()
-        );
-        // signalrService.onEvent("onConnected", initializeWebRTC);
+        var onConnectedSub = SignalrEventSub.addListener("onConnected", () => {
+          console.log("onConnected triggered webrtc");
+          initializeWebRTC();
+        });
       }
     },
     [webrtcService]

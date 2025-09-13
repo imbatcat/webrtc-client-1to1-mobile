@@ -1,6 +1,7 @@
 import { mediaDevices } from "react-native-webrtc";
 import { HUB_METHODS, CLIENT_METHODS } from "../signalr/signalingMethods";
 import SignalrServiceModule from "../../modules/signalr-service/src/SignalrServiceModule";
+import { requireNativeModule } from "expo";
 
 const iceServers = [
   {
@@ -27,7 +28,6 @@ const iceServers = [
     credential: process.env.EXPO_PUBLIC_TURN_CREDENTIAL,
   },
 ];
-// TODO: enforce polite/impolite behavior
 class WebRTCService {
   #peerConnection = null;
   #localStream = null;
@@ -46,10 +46,12 @@ class WebRTCService {
   #isAudioOff = false;
   #isVideoOff = false;
   #isFlipCamera = false;
+  #signalrSubscriptions = [];
 
   #handleMessageReceived = this.handleMessageReceived.bind(this);
   #handleCandidateReceived = this.handleCandidateReceived.bind(this);
   #handleUserLeft = this.handleUserLeft.bind(this);
+  #SignalrEventSub = requireNativeModule("SignalrService");
 
   handleOnTrack({ track, streams }) {
     console.log(
@@ -319,10 +321,15 @@ class WebRTCService {
 
       if (message.type === "offer") {
         console.log(`WebRTC [${this.#username}]: Setting local description`);
-        await this.#peerConnection.setLocalDescription();
+        const answer = await this.#peerConnection.createAnswer();
+        await this.#peerConnection.setLocalDescription(answer);
+        console.log(
+          `WebRTC [${this.#username}]: Local description set:`,
+          answer
+        );
         await SignalrServiceModule.invoke(HUB_METHODS.SEND_MESSAGE, [
           this.#roomId,
-          this.#peerConnection.localDescription,
+          answer,
         ]);
       }
     } catch (error) {
@@ -379,7 +386,10 @@ class WebRTCService {
   }
 
   async handleOnIceCandidate(event) {
-    console.log(`WebRTC [${this.#username}]: candidate:`, event.candidate);
+    // console.log(`WebRTC [${this.#username}]: candidate:`, event.candidate);
+    if (!event.candidate) {
+      return;
+    }
 
     await SignalrServiceModule.invoke(HUB_METHODS.SEND_ICE_CANDIDATE, [
       this.#roomId,
@@ -423,34 +433,38 @@ class WebRTCService {
     }
   }
   registerSignalrHandlers() {
-    SignalrServiceModule.registerHandlers();
-    SignalrServiceModule.addListener(
+    if (this.#signalrSubscriptions.length > 0) {
+      this.unregisterSignalrHandlers();
+    }
+
+    const subMsg = this.#SignalrEventSub.addListener(
       CLIENT_METHODS.RECEIVE_MESSAGE,
-      (message) => this.#handleMessageReceived(message)
+      ({ message }) => {
+        console.log(`WebRTC [${this.#username}]: receive message:`, message);
+        this.#handleMessageReceived(message);
+      }
     );
-    SignalrServiceModule.addListener(
+    const subCand = this.#SignalrEventSub.addListener(
       CLIENT_METHODS.RECEIVE_ICE_CANDIDATE,
-      (candidate) => this.#handleCandidateReceived(candidate)
+      ({ candidate }) => this.#handleCandidateReceived(candidate)
     );
-    SignalrServiceModule.addListener(CLIENT_METHODS.USER_LEFT, (username) =>
-      this.#handleUserLeft(username)
+    const subLeft = this.#SignalrEventSub.addListener(
+      CLIENT_METHODS.USER_LEFT,
+      ({ username }) => this.#handleUserLeft(username)
     );
+
+    this.#signalrSubscriptions.push(subMsg, subCand, subLeft);
   }
 
   unregisterSignalrHandlers() {
-    SignalrServiceModule.unregisterHandlers();
-    SignalrServiceModule.removeListener(
-      CLIENT_METHODS.RECEIVE_MESSAGE,
-      () => this.#handleMessageReceived
-    );
-    SignalrServiceModule.removeListener(
-      CLIENT_METHODS.RECEIVE_ICE_CANDIDATE,
-      () => this.#handleCandidateReceived
-    );
-    SignalrServiceModule.removeListener(
-      CLIENT_METHODS.USER_LEFT,
-      () => this.#handleUserLeft
-    );
+    if (this.#signalrSubscriptions.length > 0) {
+      this.#signalrSubscriptions.forEach((sub) => {
+        try {
+          sub?.remove?.();
+        } catch (e) {}
+      });
+      this.#signalrSubscriptions = [];
+    }
   }
 
   setOnTrackCallback(callback) {

@@ -36,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.Map;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Single;
+import expo.modules.signalrservice.HubMethods;
+import expo.modules.signalrservice.ClientMethods;
 
 public class SignalRForegroundService extends Service {
 
@@ -212,6 +214,36 @@ public class SignalRForegroundService extends Service {
             if (VERBOSE_LOGGING) {
                 Log.v(TAG, "startConnection() - HubConnection built successfully");
             }
+
+            hubConnection.on(ClientMethods.RECEIVE_MESSAGE.getMethod(), (message) -> {
+                Log.i(TAG, "ReceiveMessage: " + message);
+                notifyListeners(ClientMethods.RECEIVE_MESSAGE.getMethod(), message);
+            }, Object.class);
+
+            hubConnection.on(ClientMethods.RECEIVE_ICE_CANDIDATE.getMethod(), (candidate) -> {
+                Log.i(TAG, "ReceiveICECandidate: " + candidate);
+                notifyListeners(ClientMethods.RECEIVE_ICE_CANDIDATE.getMethod(), candidate);
+            }, Object.class);
+
+            hubConnection.on(ClientMethods.USER_JOINED.getMethod(), (username) -> {
+                Log.i(TAG, "UserJoined: " + username);
+                notifyListeners(ClientMethods.USER_JOINED.getMethod(), username);
+            }, String.class);
+
+            hubConnection.on(ClientMethods.USER_LEFT.getMethod(), (username) -> {
+                Log.i(TAG, "UserLeft: " + username);
+                notifyListeners(ClientMethods.USER_LEFT.getMethod(), username);
+            }, String.class);
+
+            hubConnection.on(ClientMethods.ROOM_DOES_NOT_EXIST.getMethod(), (message) -> {
+                Log.w(TAG, "RoomDoesNotExist: " + message);
+                notifyListeners(ClientMethods.ROOM_DOES_NOT_EXIST.getMethod(), message);
+            }, String.class);
+
+            hubConnection.on(ClientMethods.NOT_AUTHORIZED_TO_JOIN.getMethod(), (message) -> {
+                Log.w(TAG, "NotAuthorizedToJoin: " + message);
+                notifyListeners(ClientMethods.NOT_AUTHORIZED_TO_JOIN.getMethod(), message);
+            }, String.class);
 
             hubConnection.onClosed(error -> {
                 Log.w(TAG, "onClosed: " + (error != null ? error.getMessage() : "null"));
@@ -418,6 +450,25 @@ public class SignalRForegroundService extends Service {
         if (VERBOSE_LOGGING) {
             int listenerCount = hubConnectionCallbacks.get(eventName).size();
             Log.v(TAG, "onEvent() - Total listeners for " + eventName + ": " + listenerCount);
+        }
+    }
+    public void offEvent(String eventName) {
+        if (VERBOSE_LOGGING) {
+            Log.v(TAG, "offEvent() - Removing all listeners for event: " + eventName);
+        }
+        if (eventName == null || eventName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Event name must be a non-empty string");
+        }
+        
+        Set<EventListener> listeners = hubConnectionCallbacks.remove(eventName);
+        if (listeners != null) {
+            if (VERBOSE_LOGGING) {
+                Log.v(TAG, "offEvent() - Removed " + listeners.size() + " listeners for event: " + eventName);
+            }
+        } else {
+            if (VERBOSE_LOGGING) {
+                Log.v(TAG, "offEvent() - No listeners found for event: " + eventName);
+            }
         }
     }
 

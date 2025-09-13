@@ -14,7 +14,7 @@ import expo.modules.kotlin.events.EventEmitter
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.signalrservice.SignalRForegroundService.EventListener
-
+import expo.modules.signalrservice.ClientMethods
 
 class SignalrServiceModule : Module() {
   private var boundSignalRService: SignalRForegroundService? = null
@@ -74,24 +74,6 @@ class SignalrServiceModule : Module() {
       hubConnection.send(method, *args.toTypedArray())
     }
 
-    AsyncFunction("onEvent") { eventName: String ->
-      if (VERBOSE_LOGGING) {
-        Log.v("SignalrServiceModule", "onEvent() - Registering listener for event: $eventName")
-      }
-      val listener = object : EventListener {
-        override fun onEvent(eventType: String, payload: Any?) {
-          if (VERBOSE_LOGGING) {
-            Log.v("SignalrServiceModule", "onEvent() - Event received: $eventType, payload class: ${payload?.javaClass?.name ?: "null"}")
-          }
-          val params = normalizeEventParams(payload)
-          this@SignalrServiceModule.sendEvent(eventType, params)
-        }
-      }
-      boundSignalRService?.onEvent(eventName, listener)
-      if (VERBOSE_LOGGING) {
-        Log.v("SignalrServiceModule", "onEvent() - Listener registered for event: $eventName")
-      }
-    }
 
     AsyncFunction("registerHandlers") {
       if (VERBOSE_LOGGING) {
@@ -174,7 +156,8 @@ class SignalrServiceModule : Module() {
               if (VERBOSE_LOGGING) {
                 Log.v("SignalrServiceModule", "startService() - onConnected event received")
               }
-              this@SignalrServiceModule.sendEvent("onConnected", null)
+                this@SignalrServiceModule.sendEvent("onConnected", emptyMap<String, Any>())
+                Log.v("SignalrServiceModule", "startService() - onConnected event triggered")
             }
           })
           boundSignalRService?.onEvent("onDisconnected", object : EventListener {
@@ -182,7 +165,67 @@ class SignalrServiceModule : Module() {
               if (VERBOSE_LOGGING) {
                 Log.v("SignalrServiceModule", "startService() - onDisconnected event received")
               }
-              this@SignalrServiceModule.sendEvent("onDisconnected", null)
+              this@SignalrServiceModule.sendEvent("onDisconnected", emptyMap<String, Any>())
+            }
+          })
+
+          boundSignalRService?.onEvent(ClientMethods.RECEIVE_MESSAGE.method, object : EventListener {
+            override fun onEvent(eventType: String, payload: Any?) {
+              if (VERBOSE_LOGGING) {
+                Log.v("SignalrServiceModule", "startService() - ReceiveMessage event received: $payload")
+              }
+              val eventData = mapOf("message" to payload)
+              this@SignalrServiceModule.sendEvent("ReceiveMessage", eventData)
+            }
+          })
+          
+          boundSignalRService?.onEvent(ClientMethods.RECEIVE_ICE_CANDIDATE.method, object : EventListener {
+            override fun onEvent(eventType: String, payload: Any?) {
+              if (VERBOSE_LOGGING) {
+                Log.v("SignalrServiceModule", "startService() - ReceiveICECandidate event received: $payload")
+              }
+              val eventData = mapOf("candidate" to payload)
+              this@SignalrServiceModule.sendEvent("ReceiveICECandidate", eventData)
+            }
+          })
+          
+          boundSignalRService?.onEvent(ClientMethods.USER_JOINED.method, object : EventListener {
+            override fun onEvent(eventType: String, payload: Any?) {
+              if (VERBOSE_LOGGING) {
+                Log.v("SignalrServiceModule", "startService() - UserJoined event received: $payload")
+              }
+              val eventData = mapOf("username" to payload)
+              this@SignalrServiceModule.sendEvent("UserJoined", eventData)
+            }
+          })
+          
+          boundSignalRService?.onEvent(ClientMethods.USER_LEFT.method, object : EventListener {
+            override fun onEvent(eventType: String, payload: Any?) {
+              if (VERBOSE_LOGGING) {
+                Log.v("SignalrServiceModule", "startService() - UserLeft event received: $payload")
+              }
+              val eventData = mapOf("username" to payload)
+              this@SignalrServiceModule.sendEvent("UserLeft", eventData)
+            }
+          })
+          
+          boundSignalRService?.onEvent(ClientMethods.ROOM_DOES_NOT_EXIST.method, object : EventListener {
+            override fun onEvent(eventType: String, payload: Any?) {
+              if (VERBOSE_LOGGING) {
+                Log.v("SignalrServiceModule", "startService() - RoomDoesNotExist event received: $payload")
+              }
+              val eventData = mapOf("message" to payload)
+              this@SignalrServiceModule.sendEvent("RoomDoesNotExist", eventData)
+            }
+          })
+          
+          boundSignalRService?.onEvent(ClientMethods.NOT_AUTHORIZED_TO_JOIN.method, object : EventListener {
+            override fun onEvent(eventType: String, payload: Any?) {
+              if (VERBOSE_LOGGING) {
+                Log.v("SignalrServiceModule", "startService() - NotAuthorizedToJoin event received: $payload")
+              }
+              val eventData = mapOf("message" to payload)
+              this@SignalrServiceModule.sendEvent("NotAuthorizedToJoin", eventData)
             }
           })
           if (VERBOSE_LOGGING) {
@@ -195,6 +238,13 @@ class SignalrServiceModule : Module() {
             Log.v("SignalrServiceModule", "startService() - Service disconnected")
           }
           boundSignalRService = null
+          // Clean up event listeners when service disconnects
+          boundSignalRService?.offEvent(ClientMethods.RECEIVE_MESSAGE.method)
+          boundSignalRService?.offEvent(ClientMethods.RECEIVE_ICE_CANDIDATE.method)
+          boundSignalRService?.offEvent(ClientMethods.USER_JOINED.method)
+          boundSignalRService?.offEvent(ClientMethods.USER_LEFT.method)
+          boundSignalRService?.offEvent(ClientMethods.ROOM_DOES_NOT_EXIST.method)
+          boundSignalRService?.offEvent(ClientMethods.NOT_AUTHORIZED_TO_JOIN.method)
           // Optionally notify JS or UI that service is disconnected
         }
       }
@@ -228,8 +278,6 @@ class SignalrServiceModule : Module() {
       }
       status
     }
-
-
   }
 
   private fun registerHandlers() {
@@ -256,7 +304,7 @@ class SignalrServiceModule : Module() {
           Log.v("SignalrServiceModule", "registerHandlers() - RECEIVE_MESSAGE handler triggered: $message")
         }
         this@SignalrServiceModule.sendEvent(
-          ClientMethods.RECEIVE_MESSAGE.getMethod(),
+          "ReceiveMessage",
           bundleOf("message" to message)
         )
       },
@@ -344,47 +392,6 @@ class SignalrServiceModule : Module() {
     boundSignalRService?.hubConnection?.remove(ClientMethods.NOT_AUTHORIZED_TO_JOIN.getMethod())
     if (VERBOSE_LOGGING) {
       Log.v("SignalrServiceModule", "unregisterHandlers() - All handlers unregistered")
-    }
-  }
-
-  private fun normalizeEventParams(payload: Any?): Bundle? {
-    if (payload == null) return null
-    return when (payload) {
-      is Map<*, *> -> buildBundleFromMap(payload)
-      is Collection<*> -> Bundle().apply {
-        putStringArrayList("data", ArrayList(payload.map { it?.toString() ?: "" }))
-      }
-      is String -> bundleOf("data" to payload)
-      is Int -> bundleOf("data" to payload)
-      is Long -> bundleOf("data" to payload)
-      is Double -> bundleOf("data" to payload)
-      is Float -> bundleOf("data" to payload)
-      is Boolean -> bundleOf("data" to payload)
-      else -> bundleOf("data" to payload.toString())
-    }
-  }
-
-  private fun buildBundleFromMap(map: Map<*, *>): Bundle {
-    val bundle = Bundle()
-    for ((k, v) in map) {
-      val key = k?.toString() ?: continue
-      putSupported(bundle, key, v)
-    }
-    return bundle
-  }
-
-  private fun putSupported(bundle: Bundle, key: String, value: Any?) {
-    when (value) {
-      null -> { /* skip nulls */ }
-      is String -> bundle.putString(key, value)
-      is Boolean -> bundle.putBoolean(key, value)
-      is Int -> bundle.putInt(key, value)
-      is Long -> bundle.putLong(key, value)
-      is Double -> bundle.putDouble(key, value)
-      is Float -> bundle.putFloat(key, value)
-      is Map<*, *> -> bundle.putBundle(key, buildBundleFromMap(value))
-      is Collection<*> -> bundle.putStringArrayList(key, ArrayList(value.map { it?.toString() ?: "" }))
-      else -> bundle.putString(key, value.toString())
     }
   }
 }
