@@ -18,9 +18,10 @@ export const SignalRProvider = ({ children }) => {
   const service = useMemo(() => signalrService, []);
 
   useEffect(() => {
-    (async () => {
-      await service.startConnection();
-    })();
+    return () => {
+      console.log("SignalR: Stopping connection");
+      service.stopConnection();
+    };
   }, []);
 
   return (

@@ -13,8 +13,9 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { useSignalR } from "../context/signalrContext";
 export default function Login() {
+  const { service: signalrService } = useSignalR();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [roomId, setRoomId] = useState("");
@@ -46,6 +47,7 @@ export default function Login() {
         await AsyncStorage.setItem("accessToken", token);
         await AsyncStorage.setItem("username", username);
         await AsyncStorage.setItem("roomId", roomId);
+        await signalrService.startConnection();
         router.push({
           pathname: "/navigation",
         });
