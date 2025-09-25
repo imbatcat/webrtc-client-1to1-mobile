@@ -209,14 +209,14 @@ export const MeetingStateProvider = ({ children }) => {
           roomId ? roomId : "E1D7AE1C-B7D5-43D7-8811-A13E8AEC983A",
           username
         );
-        webrtcService.startStatsCollection(
-          (stats) => {
-            if (logStats) {
-              // webrtcService.logCallQualityStats(stats);
-            }
-          },
-          logInverval ? parseInt(logInverval) : DEFAULT_LOG_INTERVAL
-        );
+        // webrtcService.startStatsCollection(
+        //   (stats) => {
+        //     if (logStats) {
+        //       // webrtcService.logCallQualityStats(stats);
+        //     }
+        //   },
+        //   logInverval ? parseInt(logInverval) : DEFAULT_LOG_INTERVAL
+        // );
 
         setIsInCall(true);
 
