@@ -25,4 +25,5 @@ export function registerHandlers(connection, triggerCallback) {
     triggerCallback(CLIENT_METHODS.NOT_AUTHORIZED_TO_JOIN, roomId);
   });
 }
+
 export default registerHandlers;

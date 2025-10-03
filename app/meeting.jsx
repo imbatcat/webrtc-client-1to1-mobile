@@ -5,10 +5,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMeetingState } from "../context/meetingStateContext";
 import DraggableContainer from "../components/DraggableContainer";
 import MeetingMenuBar from "../components/MeetingMenuBar";
+import MeetingAlertModal from "../components/MeetingAlertModal";
+import { useRouter } from "expo-router";
 
 export default function Meeting() {
   const [username, setUsername] = useState("");
   const [roomId, setRoomId] = useState("");
+  const router = useRouter();
+  const [containerLocation, setContainerLocation] = useState({
+    x: 5,
+    y: 5,
+  });
 
   // Get everything from global context
   const {
@@ -22,6 +29,10 @@ export default function Meeting() {
     isMinimized,
     skipInitializeCall,
     callInfo,
+    showExpirationAlert,
+    expirationAlertMessage,
+    stopMeeting,
+    stopMeetingMessage,
 
     // Methods
     setCallInfo,
@@ -31,11 +42,15 @@ export default function Meeting() {
     onToggleVideo,
     onToggleFlipCamera,
     onToggleMinimize,
+    setShowExpirationAlert,
+    setStopMeeting,
+    setStopMeetingMessage,
   } = useMeetingState();
 
   // Handle end call with navigation
   const handleEndCall = () => {
     endCall();
+    router.navigate("/navigation");
   };
   // Load user data from AsyncStorage and initialize call
   useEffect(() => {
@@ -99,8 +114,8 @@ export default function Meeting() {
       {/* Local video (draggable) */}
       {localMediaStream && !isVideoMuted ? (
         <DraggableContainer
-          initialPosition={{ x: 5, y: 5 }}
-          setDraggableContainerPosition={() => {}} // Simplified for now
+          initialPosition={containerLocation}
+          setDraggableContainerPosition={setContainerLocation}
           onSnapToCorner={(corner) => console.log("Snapped to:", corner)}
           cornerOffset={{ top: 5, left: 5, right: 10, bottom: 5 }}
         >
@@ -120,8 +135,8 @@ export default function Meeting() {
         </DraggableContainer>
       ) : (
         <DraggableContainer
-          initialPosition={{ x: 5, y: 5 }}
-          setDraggableContainerPosition={() => {}}
+          initialPosition={containerLocation}
+          setDraggableContainerPosition={setContainerLocation}
           onSnapToCorner={(corner) => console.log("Snapped to:", corner)}
           cornerOffset={{ top: 5, left: 5, right: 10, bottom: 5 }}
         >
@@ -173,6 +188,25 @@ export default function Meeting() {
         onToggleFlipCamera={onToggleFlipCamera}
         onToggleMinimize={onToggleMinimize}
       />
+      {showExpirationAlert && (
+        <MeetingAlertModal
+          visible={showExpirationAlert}
+          message={expirationAlertMessage}
+          onDismiss={() => {
+            setShowExpirationAlert(false);
+          }}
+        />
+      )}
+      {stopMeeting && (
+        <MeetingAlertModal
+          visible={stopMeeting}
+          message={stopMeetingMessage}
+          onDismiss={() => {
+            setStopMeeting(false);
+            router.navigate("/navigation");
+          }}
+        />
+      )}
     </>
   );
 }

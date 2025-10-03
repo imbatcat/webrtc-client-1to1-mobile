@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo } from "react";
 import signalrService from "../services/signalr/service";
-
 // Create the context
 const SignalRContext = createContext();
 

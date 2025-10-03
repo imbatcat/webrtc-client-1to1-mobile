@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from "react-native";
+import MeetingAlertModal from "../components/MeetingAlertModal";
 
 export default function Navigation() {
   const router = useRouter();

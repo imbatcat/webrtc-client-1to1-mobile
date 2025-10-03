@@ -16,6 +16,10 @@ import { hide } from "expo-router/build/utils/splash";
 import * as TaskManager from "expo-task-manager";
 import * as BackgroundTask from "expo-background-task";
 import { CALL_MAINTENANCE_TASK } from "../services/backgroundTasks/callMaintenance";
+import { CLIENT_METHODS } from "../services/signalr/signalingMethods";
+import registerMeetingManagementHandlers from "../services/signalr/registerMeetingManagementHandlers";
+import unregisterMeetingManagementHandlers from "../services/signalr/unregisterMeetingManagementHandlers";
+// import signalrService from "../services/signalr/service";
 
 const MeetingStateContext = createContext();
 
@@ -45,6 +49,14 @@ export const MeetingStateProvider = ({ children }) => {
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [skipInitializeCall, setSkipInitializeCall] = useState(false);
+  const [showExpirationAlert, setShowExpirationAlert] = useState(false);
+  const [expirationAlertMessage, setExpirationAlertMessage] = useState(
+    "Meeting will end in 5 minutes"
+  );
+  const [stopMeeting, setStopMeeting] = useState(false);
+  const [stopMeetingMessage, setStopMeetingMessage] = useState(
+    "Meeting has ended, click ok to leave the call"
+  );
 
   const { service: signalrService } = useSignalR();
   const { service: webrtcService } = useWebRTC();
@@ -104,8 +116,6 @@ export const MeetingStateProvider = ({ children }) => {
 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState) => {
-      console.log("handleAppStateChange", nextAppState);
-
       if (nextAppState === AppStates.BACKGROUND && isInCall) {
         console.log("App backgrounded during call - showing notification");
         setIsInBackground(true);
@@ -198,6 +208,17 @@ export const MeetingStateProvider = ({ children }) => {
       logStats = true
     ) => {
       const initializeWebRTC = async () => {
+        registerMeetingManagementHandlers(
+          signalrService.connection,
+          signalrService.boundTriggerCallback
+        );
+
+        signalrService.onEvent(
+          CLIENT_METHODS.SHOW_EXPIRATION_ALERT,
+          handleShowExpirationAlert
+        );
+        signalrService.onEvent(CLIENT_METHODS.STOP_MEETING, handleStopMeeting);
+
         webrtcService.setLocalStreamCallback((stream) => {
           setLocalMediaStream(stream);
         });
@@ -206,7 +227,7 @@ export const MeetingStateProvider = ({ children }) => {
         });
 
         await webrtcService.initializeConnection(
-          roomId ? roomId : "E1D7AE1C-B7D5-43D7-8811-A13E8AEC983A",
+          roomId ? roomId : "e1d7ae1c-b7d5-43d7-8811-a13e8aec983a",
           username
         );
         // webrtcService.startStatsCollection(
@@ -257,8 +278,27 @@ export const MeetingStateProvider = ({ children }) => {
     setIsLoading(false);
     setError(null);
 
-    router.navigate("/navigation");
+    signalrService.offEvent(
+      CLIENT_METHODS.SHOW_EXPIRATION_ALERT,
+      handleShowExpirationAlert
+    );
+    signalrService.offEvent(CLIENT_METHODS.STOP_MEETING, handleStopMeeting);
+    unregisterMeetingManagementHandlers(signalrService.connection);
+
   }, [webrtcService, localMediaStream, remoteMediaStream]);
+
+  const handleShowExpirationAlert = useCallback(() => {
+    console.log("handleShowExpirationAlert");
+    setShowExpirationAlert(true);
+    setExpirationAlertMessage("Meeting will end in 5 minutes");
+  }, []);
+
+  const handleStopMeeting = useCallback(() => {
+    console.log("handleStopMeeting");
+    endCall();
+    setStopMeeting(true);
+  }, [endCall]);
+
   return (
     <MeetingStateContext.Provider
       value={{
@@ -273,7 +313,10 @@ export const MeetingStateProvider = ({ children }) => {
         error,
         callInfo,
         skipInitializeCall,
-
+        showExpirationAlert,
+        expirationAlertMessage,
+        stopMeeting,
+        stopMeetingMessage,
         startCall,
         endCall,
         onToggleMinimize,
@@ -286,6 +329,10 @@ export const MeetingStateProvider = ({ children }) => {
         startBackgroundTask,
         stopBackgroundTask,
         setSkipInitializeCall,
+        setShowExpirationAlert,
+        setExpirationAlertMessage,
+        setStopMeeting,
+        setStopMeetingMessage,
       }}
     >
       {children}

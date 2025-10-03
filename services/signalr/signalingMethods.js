@@ -7,6 +7,8 @@ export const HUB_METHODS = {
 };
 
 export const CLIENT_METHODS = {
+  SHOW_EXPIRATION_ALERT: "ShowExpirationAlert",
+  STOP_MEETING: "StopMeeting",
   ROOM_DOES_NOT_EXIST: "RoomDoesNotExist",
   NOT_AUTHORIZED_TO_JOIN: "NotAuthorizedToJoin",
   USER_JOINED: "UserJoined",
