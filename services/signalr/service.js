@@ -263,7 +263,7 @@ class SignalRService {
     this.#connection.onreconnected = null;
   }
 
-  invokeHubMethod(methodName, ...args) {
+  async invokeHubMethod(methodName, ...args) {
     console.log("InvokeHubMethod", methodName, args);
     if (!this.#connection) {
       return Promise.reject(new Error("Hub connection is not initialized."));
@@ -279,10 +279,20 @@ class SignalRService {
       );
     }
 
-    return this.#connection.invoke(methodName, ...args);
+    try {
+      return await this.#connection.invoke(methodName, ...args);
+    } catch (error) {
+      console.error(
+        "SignalR: Error invoking hub method",
+        methodName,
+        args,
+        error
+      );
+      return Promise.reject(error);
+    }
   }
 
-  sendHubMethod(methodName, ...args) {
+  async sendHubMethod(methodName, ...args) {
     console.log("SendHubMethod", methodName, args);
     if (!this.#connection) {
       return Promise.reject(new Error("Hub connection is not initialized."));
@@ -298,7 +308,17 @@ class SignalRService {
       );
     }
 
-    return this.#connection.send(methodName, ...args);
+    try {
+      return await this.#connection.send(methodName, ...args);
+    } catch (error) {
+      console.error(
+        "SignalR: Error sending hub method",
+        methodName,
+        args,
+        error
+      );
+      return Promise.reject(error);
+    }
   }
 
   get boundTriggerCallback() {

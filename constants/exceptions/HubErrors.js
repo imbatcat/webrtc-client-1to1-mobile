@@ -1,0 +1,4 @@
+export const HubErrors = {
+  ROOM_NOT_FOUND: "ROOM_NOT_FOUND",
+  NOT_AUTHORIZED_TO_JOIN: "NOT_AUTHORIZED_TO_JOIN",
+};

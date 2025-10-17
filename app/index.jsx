@@ -33,16 +33,16 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const url = process.env.EXPO_PUBLIC_API_URL + "/meetingroom/login";
+      const url = process.env.EXPO_PUBLIC_API_URL + "/v1/identities/login";
       console.log(url);
       const response = await axios.post(url, {
-        username,
+        identifier: username,
         password,
-        roomId,
+        // roomId,
       });
 
       if (response.status === 200) {
-        const token = response.data.accessToken;
+        const token = response.data.data.accessToken;
         console.log(token);
         await AsyncStorage.setItem("accessToken", token);
         await AsyncStorage.setItem("username", username);

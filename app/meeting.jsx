@@ -76,7 +76,7 @@ export default function Meeting() {
             username: storedUsername,
             roomId: storedRoomId,
           });
-          startCall(storedUsername, undefined, undefined, false);
+          startCall(storedUsername, storedRoomId, undefined, false);
         }
       } catch (error) {
         console.error("Error loading user data:", error);
